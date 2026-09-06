@@ -1,6 +1,11 @@
 (function(){
 "use strict";
-var KEY="enchanted-bookshop-v3", SYNC_KEY="enchanted-bookshop-sync", deferredInstall=null;
+var KEY="enchanted-bookshop-v3", SERIES_KEY="enchanted-bookshop-series-v4", SYNC_KEY="enchanted-bookshop-sync", deferredInstall=null;
+var seriesCatalog=[];try{seriesCatalog=JSON.parse(localStorage.getItem(SERIES_KEY))||[]}catch(e){}
+function saveSeries(){localStorage.setItem(SERIES_KEY,JSON.stringify(seriesCatalog))}
+function seriesId(name){return "s_"+norm(name).replace(/\s+/g,"_")}
+function getSeries(name){return seriesCatalog.find(function(s){return norm(s.name)===norm(name)})}
+function isOwnedSeriesEntry(entry,books){return books.some(function(b){return norm(b.title)===norm(entry.title)||(b.seriesNo&&entry.number&&String(b.seriesNo)===String(entry.number))})}
 function uid(){return "b_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
 function now(){return new Date().toISOString()}
 function el(s){return document.querySelector(s)}
@@ -50,8 +55,22 @@ function library(){
 }
 function series(){
  var map={};owned().filter(function(b){return b.series}).forEach(function(b){if(!map[b.series])map[b.series]=[];map[b.series].push(b)});
- return '<div class="eyebrow">Your shelves by story</div><h1 class="title">Series</h1>'+Object.keys(map).map(function(name){var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)});return'<div class="seriesrow"><h3>'+esc(name)+'</h3><div class="muted">'+a.length+' owned</div><div class="grid">'+a.map(card).join("")+'</div></div>'}).join("")
+ var names=Object.keys(map);
+ if(!names.length)return '<div class="eyebrow">Your shelves by story</div><h1 class="title">Series Brain™</h1><div class="empty">Add a series name to a book and it will appear here.</div>';
+ return '<div class="eyebrow">V4 • Series Brain™</div><h1 class="title">Series</h1><p class="sub">Compare what you own against the full series lineup. Missing books stay separate from TBR and Want to Own.</p>'+
+ names.map(function(name){var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
+ if(!cat)return '<div class="seriesrow"><h3>'+esc(name)+'</h3><div class="muted">'+a.length+' owned • full lineup not added yet</div><div class="toolbar"><button class="primary" data-series-edit="'+esc(name)+'">🧠 Add series lineup</button></div><div class="grid">'+a.map(card).join("")+'</div></div>';
+ var total=cat.books.length,count=cat.books.filter(function(x){return isOwnedSeriesEntry(x,a)}).length,pct=Math.round(total?count/total*100:0);
+ var rows=cat.books.slice().sort(function(x,y){return(+x.number||999)-(+y.number||999)}).map(function(x){var yes=isOwnedSeriesEntry(x,a);return '<div class="seriesbook '+(yes?'ownedvol':'missingvol')+'"><b>'+(yes?'✅':'❌')+' '+(x.number?'#'+esc(x.number)+' ':'')+esc(x.title)+'</b><span>'+esc(x.type||"Main novel")+(yes?' • Owned':' • Missing')+'</span>'+(yes?'':'<button class="pill" data-missing-series="'+esc(name)+'" data-missing-title="'+esc(x.title)+'" data-missing-no="'+esc(x.number||"")+'">Add / Want to Own</button>')+'</div>'}).join("");
+ return '<div class="seriesrow"><div class="serieshead"><div><h3>'+esc(name)+'</h3><div class="muted">'+count+' of '+total+' owned • '+pct+'% complete</div></div><button class="pill" data-series-edit="'+esc(name)+'">✏️ Edit lineup</button></div><div class="progress"><i style="width:'+pct+'%"></i></div><div class="serieslist">'+rows+'</div></div>'}).join("")
 }
+function openSeriesEditor(name){
+ var existing=getSeries(name),books=existing?existing.books:owned().filter(function(b){return norm(b.series)===norm(name)}).map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel"}}).sort(function(a,b){return(+a.number||0)-(+b.number||0)});
+ el("#modalBody").innerHTML='<div class="eyebrow">Series Brain™</div><h1 class="title">'+esc(name)+'</h1><p class="sub">One book per line: <b>number | title | type</b>. Type can be Main novel, Novella, Companion, etc.</p><div class="field full"><label>Series lineup</label><textarea id="seriesLines" style="min-height:300px">'+esc(books.map(function(x){return[x.number,x.title,x.type||"Main novel"].join(" | ")}).join("\\n"))+'</textarea></div><div class="actions"><button class="primary" id="saveSeriesLineup">Save lineup</button></div>';
+ el("#modal").classList.remove("hidden");
+ el("#saveSeriesLineup").onclick=function(){var lines=el("#seriesLines").value.split(/\\n/).map(function(x){return x.trim()}).filter(Boolean),parsed=lines.map(function(line){var p=line.split("|").map(function(x){return x.trim()});return{number:p[0]||"",title:p[1]||p[0]||"",type:p[2]||"Main novel"}}).filter(function(x){return x.title}),obj={id:seriesId(name),name:name,books:parsed,updatedAt:now(),deleted:false},ix=seriesCatalog.findIndex(function(s){return s.id===obj.id});if(ix>=0)seriesCatalog[ix]=obj;else seriesCatalog.push(obj);saveSeries();closeModal();render();autoSyncSeriesMaybe()}
+}
+function openMissing(name,title,no){openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"want-to-read",owned:false,wantOwn:true,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:"Missing from series"})}
 function shelf(title,a){return'<div class="eyebrow">Your shelves</div><h1 class="title">'+title+'</h1><div class="grid">'+(a.map(card).join("")||'<div class="empty">Nothing here yet. ✨</div>')+'</div>'}
 function backup(){
  return '<div class="eyebrow">Never lose your library</div><h1 class="title">Backup & Data</h1><div class="split"><div class="box"><h3>💾 Export backup</h3><p class="sub">Save everything as JSON.</p><button class="primary" id="exportBtn">Export JSON</button></div><div class="box"><h3>📥 Restore backup</h3><input type="file" id="restoreFile" accept=".json"></div></div>'
@@ -149,7 +168,18 @@ async function syncNow(){
  }catch(e){if(st){st.className="syncstatus bad";st.textContent=e.message}else alert(e.message)}
 }
 async function pullSync(){await syncNow()}
+async function syncSeries(){
+ var s=getSync();if(!s.token||!s.userId)return;
+ var rr=await api("enchanted_series?select=id,data,updated_at,deleted",{method:"GET"}),remote=await rr.json(),map={};
+ seriesCatalog.forEach(function(x){map[x.id]=x});remote.forEach(function(row){var x=row.data||{};x.id=row.id;x.updatedAt=row.updated_at;x.deleted=!!row.deleted;var l=map[x.id];if(!l||new Date(x.updatedAt)>new Date(l.updatedAt||0))map[x.id]=x});
+ seriesCatalog=Object.keys(map).map(function(k){return map[k]}).filter(function(x){return !x.deleted});saveSeries();
+ var payload=seriesCatalog.map(function(x){return{id:x.id,user_id:s.userId,data:x,updated_at:x.updatedAt||now(),deleted:!!x.deleted}});
+ if(payload.length)await api("enchanted_series?on_conflict=id",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)});
+}
+var originalSyncNow=syncNow;
+syncNow=async function(){await originalSyncNow();try{await syncSeries()}catch(e){console.warn(e)}if(state.view==="series")render()}
 function autoSyncMaybe(){var s=getSync();if(s.auto&&navigator.onLine&&s.token)setTimeout(syncNow,250)}
+function autoSyncSeriesMaybe(){var s=getSync();if(s.auto&&navigator.onLine&&s.token)setTimeout(syncSeries,250)}
 function wirePage(){
  if(el("#homeScan"))el("#homeScan").onclick=openGuardian;
  document.querySelectorAll("[data-goto]").forEach(function(b){b.onclick=function(){state.view=b.getAttribute("data-goto");save();render()}});
@@ -164,6 +194,8 @@ function wirePage(){
 document.addEventListener("click",function(e){
  var v=e.target.closest("[data-view]");if(v){state.view=v.getAttribute("data-view");state.filter="all";save();render();return}
  var f=e.target.closest("[data-filter]");if(f){state.filter=f.getAttribute("data-filter");render();return}
+ var se=e.target.closest("[data-series-edit]");if(se){openSeriesEditor(se.getAttribute("data-series-edit"));return}
+ var mb=e.target.closest("[data-missing-series]");if(mb){openMissing(mb.getAttribute("data-missing-series"),mb.getAttribute("data-missing-title"),mb.getAttribute("data-missing-no"));return}
  var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openBook(b)}
 });
 el("#addBtn").onclick=function(){openBook()};el("#scanBtn").onclick=openGuardian;el("#closeModal").onclick=closeModal;el("#modal").onclick=function(e){if(e.target.id==="modal")closeModal()};el("#search").oninput=function(){if(state.view!=="library")state.view="library";render()};
