@@ -38,3 +38,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 
 /* V4.1 Series Brain ownership states */
 .seriesstats{display:flex;gap:14px;flex-wrap:wrap;margin:5px 0}.complete{margin-top:6px;color:var(--gold);font-weight:800}.progresslabel{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin-top:8px}.catalogprogress i{opacity:.7}.seriesactions{grid-column:2;grid-row:1/3;display:flex;gap:6px;align-items:center}.seriesbook.ownedvol{border-left:4px solid var(--gold)}.seriesbook.catalogedvol{border-left:4px solid var(--ok)}.seriesbook.missingvol{border-left:4px solid var(--burg)}.tiny{font-size:10px;padding:7px 8px;border-radius:8px}.danger{border:1px solid var(--burg);background:transparent;color:var(--cream)}@media(max-width:600px){.seriesactions{grid-column:1;grid-row:auto;flex-wrap:wrap}}
+
+/* V4.2 */
+.completion-summary{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:10px;margin:12px 0}
+.completion-stat{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.025);display:flex;flex-direction:column;gap:3px}
+.completion-stat span{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.genre-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.genre-chip{display:inline-flex!important;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:8px 11px!important;text-transform:none!important;letter-spacing:0!important;cursor:pointer;background:rgba(255,255,255,.02)}
+.genre-chip:has(input:checked){border-color:var(--gold);background:rgba(218,183,112,.13)}
+.genre-chip input{width:auto;margin:0}.custom-genre-label{margin-top:12px}
+@media(max-width:650px){.completion-summary{grid-template-columns:1fr}.genre-chip{font-size:.88rem}}
