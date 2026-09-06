@@ -1,0 +1,25 @@
+{
+  "name": "Enchanted Bookshop",
+  "short_name": "Bookshop",
+  "description": "A cozy local-first personal library, edition tracker, shopping guardian, and reading companion.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101714",
+  "theme_color": "#16221c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
