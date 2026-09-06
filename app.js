@@ -53,24 +53,56 @@ function library(){
  var b=filtered(),names={all:"All",favorites:"⭐ Favorites",tbr:"📖 Unread",read:"✅ Read",spicy:"🌶️ Spicy"};
  return '<div class="eyebrow">The collection</div><h1 class="title">My Library</h1><div class="toolbar">'+Object.keys(names).map(function(k){return'<button class="pill '+(state.filter===k?"active":"")+'" data-filter="'+k+'">'+names[k]+'</button>'}).join("")+'</div><div class="grid">'+(b.map(card).join("")||'<div class="empty">No books match that filter.</div>')+'</div>'
 }
+function catalogedSeriesEntry(entry,books){
+ return books.some(function(b){return norm(b.title)===norm(entry.title)||(b.seriesNo&&entry.number&&String(b.seriesNo)===String(entry.number))})
+}
+function ownedSeriesEntry(entry,books){
+ return catalogedSeriesEntry(entry,books)||entry.ownedUncataloged===true
+}
+function seriesState(entry,books){
+ if(catalogedSeriesEntry(entry,books))return "cataloged";
+ if(entry.ownedUncataloged===true)return "owned";
+ return "missing"
+}
 function series(){
  var map={};owned().filter(function(b){return b.series}).forEach(function(b){if(!map[b.series])map[b.series]=[];map[b.series].push(b)});
- var names=Object.keys(map);
+ seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){if(!map[s.name])map[s.name]=[]});
+ var names=Object.keys(map).sort();
  if(!names.length)return '<div class="eyebrow">Your shelves by story</div><h1 class="title">Series Brain™</h1><div class="empty">Add a series name to a book and it will appear here.</div>';
- return '<div class="eyebrow">V4 • Series Brain™</div><h1 class="title">Series</h1><p class="sub">Compare what you own against the full series lineup. Missing books stay separate from TBR and Want to Own.</p>'+
- names.map(function(name){var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
- if(!cat)return '<div class="seriesrow"><h3>'+esc(name)+'</h3><div class="muted">'+a.length+' owned • full lineup not added yet</div><div class="toolbar"><button class="primary" data-series-edit="'+esc(name)+'">🧠 Add series lineup</button></div><div class="grid">'+a.map(card).join("")+'</div></div>';
- var total=cat.books.length,count=cat.books.filter(function(x){return isOwnedSeriesEntry(x,a)}).length,pct=Math.round(total?count/total*100:0);
- var rows=cat.books.slice().sort(function(x,y){return(+x.number||999)-(+y.number||999)}).map(function(x){var yes=isOwnedSeriesEntry(x,a);return '<div class="seriesbook '+(yes?'ownedvol':'missingvol')+'"><b>'+(yes?'✅':'❌')+' '+(x.number?'#'+esc(x.number)+' ':'')+esc(x.title)+'</b><span>'+esc(x.type||"Main novel")+(yes?' • Owned':' • Missing')+'</span>'+(yes?'':'<button class="pill" data-missing-series="'+esc(name)+'" data-missing-title="'+esc(x.title)+'" data-missing-no="'+esc(x.number||"")+'">Add / Want to Own</button>')+'</div>'}).join("");
- return '<div class="seriesrow"><div class="serieshead"><div><h3>'+esc(name)+'</h3><div class="muted">'+count+' of '+total+' owned • '+pct+'% complete</div></div><button class="pill" data-series-edit="'+esc(name)+'">✏️ Edit lineup</button></div><div class="progress"><i style="width:'+pct+'%"></i></div><div class="serieslist">'+rows+'</div></div>'}).join("")
+ return '<div class="eyebrow">V4.1 • Series Brain™</div><h1 class="title">Series</h1><p class="sub">Three states: ✅ cataloged, 📚 owned but not cataloged, and ❌ genuinely missing.</p>'+
+ names.map(function(name){
+  var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
+  if(!cat)return '<div class="seriesrow"><h3>'+esc(name)+'</h3><div class="muted">'+a.length+' cataloged • full lineup not added yet</div><div class="toolbar"><button class="primary" data-series-edit="'+esc(name)+'">🧠 Add series lineup</button></div><div class="grid">'+a.map(card).join("")+'</div></div>';
+  var total=cat.books.length,cataloged=cat.books.filter(function(x){return catalogedSeriesEntry(x,a)}).length,ownedCount=cat.books.filter(function(x){return ownedSeriesEntry(x,a)}).length,missing=total-ownedCount;
+  var ownPct=Math.round(total?ownedCount/total*100:0),catPct=Math.round(total?cataloged/total*100:0);
+  var rows=cat.books.slice().sort(function(x,y){return(+x.number||999)-(+y.number||999)}).map(function(x){
+   var st=seriesState(x,a),icon=st==="cataloged"?"✅":st==="owned"?"📚":"❌",label=st==="cataloged"?"Cataloged":st==="owned"?"Owned • needs cataloging":"Missing";
+   var action=st==="cataloged"?'':st==="owned"?'<button class="pill" data-series-scan="'+esc(name)+'" data-series-title="'+esc(x.title)+'" data-series-no="'+esc(x.number||"")+'">📷 Catalog copy</button><button class="tiny danger" data-series-toggle="'+esc(name)+'" data-series-title="'+esc(x.title)+'">Mark missing</button>':'<button class="pill" data-series-toggle="'+esc(name)+'" data-series-title="'+esc(x.title)+'">📚 I own this</button>';
+   return '<div class="seriesbook '+st+'vol"><b>'+icon+' '+(x.number?'#'+esc(x.number)+' ':'')+esc(x.title)+'</b><span>'+esc(x.type||"Main novel")+' • '+label+'</span><div class="seriesactions">'+action+'</div></div>'
+  }).join("");
+  var complete=total&&ownedCount===total?'<div class="complete">✨ Collection complete! Every volume is owned.</div>':'<div class="muted">'+missing+' genuinely missing</div>';
+  return '<div class="seriesrow"><div class="serieshead"><div><h3>'+esc(name)+'</h3><div class="seriesstats"><b>📚 '+ownedCount+'/'+total+' owned</b><b>✨ '+cataloged+'/'+total+' cataloged</b></div>'+complete+'</div><button class="pill" data-series-edit="'+esc(name)+'">✏️ Edit lineup</button></div><label class="progresslabel">Owned</label><div class="progress"><i style="width:'+ownPct+'%"></i></div><label class="progresslabel">Cataloged</label><div class="progress catalogprogress"><i style="width:'+catPct+'%"></i></div><div class="serieslist">'+rows+'</div></div>'
+ }).join("")
 }
 function openSeriesEditor(name){
- var existing=getSeries(name),books=existing?existing.books:owned().filter(function(b){return norm(b.series)===norm(name)}).map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel"}}).sort(function(a,b){return(+a.number||0)-(+b.number||0)});
- el("#modalBody").innerHTML='<div class="eyebrow">Series Brain™</div><h1 class="title">'+esc(name)+'</h1><p class="sub">One book per line: <b>number | title | type</b>. Type can be Main novel, Novella, Companion, etc.</p><div class="field full"><label>Series lineup</label><textarea id="seriesLines" style="min-height:300px">'+esc(books.map(function(x){return[x.number,x.title,x.type||"Main novel"].join(" | ")}).join("\\n"))+'</textarea></div><div class="actions"><button class="primary" id="saveSeriesLineup">Save lineup</button></div>';
+ var existing=getSeries(name),books=existing?existing.books:owned().filter(function(b){return norm(b.series)===norm(name)}).map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",ownedUncataloged:false}}).sort(function(a,b){return(+a.number||0)-(+b.number||0)});
+ el("#modalBody").innerHTML='<div class="eyebrow">Series Brain™</div><h1 class="title">'+esc(name)+'</h1><p class="sub">One book per line: <b>number | title | type</b>. Ownership is managed from the Series page after saving.</p><div class="field full"><label>Series lineup</label><textarea id="seriesLines" style="min-height:300px">'+esc(books.map(function(x){return[x.number,x.title,x.type||"Main novel"].join(" | ")}).join("\\n"))+'</textarea></div><div class="actions"><button class="primary" id="saveSeriesLineup">Save lineup</button></div>';
  el("#modal").classList.remove("hidden");
- el("#saveSeriesLineup").onclick=function(){var lines=el("#seriesLines").value.split(/\\n/).map(function(x){return x.trim()}).filter(Boolean),parsed=lines.map(function(line){var p=line.split("|").map(function(x){return x.trim()});return{number:p[0]||"",title:p[1]||p[0]||"",type:p[2]||"Main novel"}}).filter(function(x){return x.title}),obj={id:seriesId(name),name:name,books:parsed,updatedAt:now(),deleted:false},ix=seriesCatalog.findIndex(function(s){return s.id===obj.id});if(ix>=0)seriesCatalog[ix]=obj;else seriesCatalog.push(obj);saveSeries();closeModal();render();autoSyncSeriesMaybe()}
+ el("#saveSeriesLineup").onclick=function(){
+  var previous={};books.forEach(function(x){previous[norm(x.title)]=!!x.ownedUncataloged});
+  var lines=el("#seriesLines").value.split(/\n/).map(function(x){return x.trim()}).filter(Boolean),parsed=lines.map(function(line){var q=line.split("|").map(function(x){return x.trim()});var title=q[1]||q[0]||"";return{number:q[0]||"",title:title,type:q[2]||"Main novel",ownedUncataloged:previous[norm(title)]||false}}).filter(function(x){return x.title});
+  var obj={id:seriesId(name),name:name,books:parsed,updatedAt:now(),deleted:false},ix=seriesCatalog.findIndex(function(s){return s.id===obj.id});if(ix>=0)seriesCatalog[ix]=obj;else seriesCatalog.push(obj);
+  saveSeries();closeModal();render();autoSyncSeriesMaybe()
+ }
 }
-function openMissing(name,title,no){openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"want-to-read",owned:false,wantOwn:true,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:"Missing from series"})}
+function toggleSeriesOwned(name,title){
+ var cat=getSeries(name);if(!cat)return;var entry=cat.books.find(function(x){return norm(x.title)===norm(title)});if(!entry)return;
+ entry.ownedUncataloged=!entry.ownedUncataloged;cat.updatedAt=now();saveSeries();render();autoSyncSeriesMaybe()
+}
+function catalogSeriesCopy(name,title,no){
+ state.view="library";render();openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""});
+}
+function openMissing(name,title,no){catalogSeriesCopy(name,title,no)}
 function shelf(title,a){return'<div class="eyebrow">Your shelves</div><h1 class="title">'+title+'</h1><div class="grid">'+(a.map(card).join("")||'<div class="empty">Nothing here yet. ✨</div>')+'</div>'}
 function backup(){
  return '<div class="eyebrow">Never lose your library</div><h1 class="title">Backup & Data</h1><div class="split"><div class="box"><h3>💾 Export backup</h3><p class="sub">Save everything as JSON.</p><button class="primary" id="exportBtn">Export JSON</button></div><div class="box"><h3>📥 Restore backup</h3><input type="file" id="restoreFile" accept=".json"></div></div>'
@@ -194,6 +226,8 @@ function wirePage(){
 document.addEventListener("click",function(e){
  var v=e.target.closest("[data-view]");if(v){state.view=v.getAttribute("data-view");state.filter="all";save();render();return}
  var f=e.target.closest("[data-filter]");if(f){state.filter=f.getAttribute("data-filter");render();return}
+ var st=e.target.closest("[data-series-toggle]");if(st){toggleSeriesOwned(st.getAttribute("data-series-toggle"),st.getAttribute("data-series-title"));return}
+ var sc=e.target.closest("[data-series-scan]");if(sc){catalogSeriesCopy(sc.getAttribute("data-series-scan"),sc.getAttribute("data-series-title"),sc.getAttribute("data-series-no"));return}
  var se=e.target.closest("[data-series-edit]");if(se){openSeriesEditor(se.getAttribute("data-series-edit"));return}
  var mb=e.target.closest("[data-missing-series]");if(mb){openMissing(mb.getAttribute("data-missing-series"),mb.getAttribute("data-missing-title"),mb.getAttribute("data-missing-no"));return}
  var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openBook(b)}
