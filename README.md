@@ -1,24 +1,17 @@
-# Enchanted Bookshop V4.7.3 — Book Intelligence ↔ Series Brain Bridge
+# Enchanted Bookshop V4.7.5 — Series Bridge 2.0
 
-- Adds a generic work-level series discovery pass after ISBN/edition identification.
-- Searches multiple Google Books result sets plus Open Library series metadata.
-- Aggregates and scores independent series claims rather than trusting the first hit.
-- Prefills a likely series + number only when evidence crosses a confidence threshold.
-- Marks automatically discovered series as **possible — confirm below** before the book is saved.
-- Keeps V4.7.2 Series Cleanup Brain, unknown-spice behavior, read-before-tracking, backup, and sync features.
-- `Promises and Pomegranates` is NOT hardcoded; it remains the benchmark.
-- No Supabase schema changes.
+Built from the proven V4.7.4 Series Sync Merge stable checkpoint.
 
+## V4.7.5
+Series discovery now reuses the normal work-level Google Books search and evaluates matching alternate editions together. If one edition omits series metadata but another matching edition contains a strong series statement, the Bookshop can carry that work-level series claim into the scanned edition as a user-confirmable suggestion.
 
-## V4.7.4 — Series Sync Merge
+This specifically addresses the V4.7.3 failure mode where Promises and Pomegranates ISBN 9781464229015 was identified correctly but its newer edition did not expose Monsters & Muses #1 in the selected metadata record.
 
-This build focuses on safe cross-device Series Catalog synchronization.
-
-- Pull + merge is now truly pull-only: it downloads cloud records and merges them locally without uploading.
-- Sync now performs a two-way merge for both books and Series Catalog records, then uploads the combined result.
-- Different series IDs are preserved together, so a phone-only lineup and a computer-only lineup can become one union in the cloud.
-- Conflicts for the same record ID use `updatedAt` / cloud `updated_at`; the newer copy wins.
+## Preserved from V4.7.4
+- Books and Series Catalogs sync separately by record ID.
+- Pull + merge downloads without uploading.
+- Sync now performs a two-way merge then uploads the combined state.
+- Different series are combined rather than replacing one another.
 - Local/offline data remains intact.
-- No new Supabase SQL is required if V4 Series Brain sync is already installed.
 
-Recommended benchmark: with The Selection only on the phone and A Good Girl's Guide to Murder only in cloud/computer, run **Sync now on the phone**, then **Pull + merge on the computer**. Both devices should then show both lineups.
+No Supabase SQL changes are required for V4.7.5.
