@@ -48,3 +48,6 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .genre-chip:has(input:checked){border-color:var(--gold);background:rgba(218,183,112,.13)}
 .genre-chip input{width:auto;margin:0}.custom-genre-label{margin-top:12px}
 @media(max-width:650px){.completion-summary{grid-template-columns:1fr}.genre-chip{font-size:.88rem}}
+
+/* V4.3 */
+.home-dashboard{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin:18px 0}.dashboard-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:18px;min-width:0}.current-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:12px;margin-top:12px}.challenge-big{font:700 34px Georgia,serif;color:var(--gold2);margin:10px 0 4px}.challenge-set{display:flex;gap:8px;margin-top:14px}.challenge-set input{width:100px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px}.empty.mini{padding:18px;margin-top:12px}@media(max-width:820px){.home-dashboard{grid-template-columns:1fr}.current-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
