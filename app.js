@@ -5,7 +5,7 @@ var META_CACHE_TTL=7*24*60*60*1000;
 function getMetaCache(){var x={};try{x=JSON.parse(localStorage.getItem(META_CACHE_KEY))||{}}catch(e){}return x}
 function getCachedJSON(url){var c=getMetaCache(),r=c[url];if(!r||!r.savedAt||Date.now()-r.savedAt>META_CACHE_TTL)return null;return r.data}
 function setCachedJSON(url,data){try{var c=getMetaCache();c[url]={savedAt:Date.now(),data:data};var keys=Object.keys(c);if(keys.length>120){keys.sort(function(a,b){return(c[a].savedAt||0)-(c[b].savedAt||0)});keys.slice(0,keys.length-120).forEach(function(k){delete c[k]})}localStorage.setItem(META_CACHE_KEY,JSON.stringify(c))}catch(e){}}
-async function cachedFetchJSON(url){var hit=getCachedJSON(url);if(hit!==null)return{ok:true,status:200,data:hit,fromCache:true};try{var r=await fetch(url);if(!r.ok)return{ok:false,status:r.status,data:null,fromCache:false};var j=await r.json();setCachedJSON(url,j);return{ok:true,status:r.status,data:j,fromCache:false}}catch(e){return{ok:false,status:0,data:null,fromCache:false}}}
+async function cachedFetchJSON(url){var hit=getCachedJSON(url);if(hit!==null)return{ok:true,status:200,data:hit,fromCache:true};var c=new AbortController(),t=setTimeout(function(){c.abort()},8000);try{var r=await fetch(url,{signal:c.signal});clearTimeout(t);if(!r.ok)return{ok:false,status:r.status,data:null,fromCache:false};var j=await r.json();setCachedJSON(url,j);return{ok:true,status:r.status,data:j,fromCache:false}}catch(e){clearTimeout(t);return{ok:false,status:0,data:null,fromCache:false}}}
 var seriesCatalog=[];try{seriesCatalog=JSON.parse(localStorage.getItem(SERIES_KEY))||[]}catch(e){}
 function saveSeries(){localStorage.setItem(SERIES_KEY,JSON.stringify(seriesCatalog))}
 function seriesId(name){return "s_"+norm(name).replace(/\s+/g,"_")}
@@ -116,21 +116,21 @@ function findCatalogedWorkMatch(title,author){
  })||null
 }
 function learnWorkFromCatalogedCopy(book){
- if(!book)return null;
+ if(!book||!book.title)return null;
  var payload={
   title:book.title||"",
   author:book.author||"",
-  genres:Array.isArray(book.genres)?book.genres.slice():[],
-  tags:Array.isArray(book.tags)?book.tags.slice():[],
-  series:book.series||"",
-  seriesNo:book.seriesNo||"",
-  spice:(book.spice==null||book.spice==="")?null:+book.spice,
-  source:"Confirmed in your cataloged copy",
-  confirmed:true,
-  updatedAt:book.updatedAt||now()
+  genres:Array.isArray(book.genres)?uniqText(book.genres):[],
+  tags:Array.isArray(book.tags)?uniqText(book.tags):[],
+  series:String(book.series||"").trim(),
+  seriesNo:String(book.seriesNo||"").trim(),
+  spice:(+book.spice>0?+book.spice:null),
+  confirmedAt:now(),
+  source:"Confirmed in your cataloged copy"
  };
  if(!(payload.genres.length||payload.tags.length||payload.series||payload.seriesNo||payload.spice!=null))return null;
- setWorkIntelligence(payload.title,payload.author,payload);
+ workIntelligence[workIntelKey(payload.title,payload.author)]=payload;
+ saveWorkIntelligence();
  return payload
 }
 function getOrBootstrapWorkIntelligence(title,author){
@@ -263,8 +263,7 @@ function syncPage(){
  '<div class="box"><h3>3. Sync your library</h3><p class="tiny">V4.7.4 merges books and Series Catalogs separately by ID and keeps the newest version of the same record. Different series are combined instead of replacing each other. <b>Pull + merge</b> never uploads; <b>Sync now</b> performs a two-way merge, then uploads the combined result. Your local copy remains available offline.</p><label><input type="checkbox" id="autoSync" '+(s.auto?"checked":"")+'> Auto-sync after local changes when online</label><div class="actions"><button class="pill" id="pullSync">☁️ Pull + merge</button><button class="primary" id="pushSync">☁️ Sync now</button></div><div id="syncRunStatus" class="syncstatus">Ready.</div></div>'+
  '<div class="box"><h3>Server setup</h3><p class="tiny">The included <b>SUPABASE_SETUP.sql</b> file creates the table and row-level security rules required for this app. Run it once in your Supabase SQL editor before syncing.</p></div>'
 }
-var __workBrainBootstrapped=false;
-function render(){if(!__workBrainBootstrapped){__workBrainBootstrapped=true;try{bootstrapAllCatalogedWorkIntelligence()}catch(e){console.warn('Work Brain bootstrap skipped',e)}}
+function render(){
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
  if(state.view==="home")c.innerHTML=home();
@@ -296,7 +295,7 @@ function openBook(b){
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10 • Work Brain Bootstrap</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10.1 • Bootstrap Hotfix</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -412,7 +411,29 @@ async function enrichBook(found,isbn){
  return out
 }
 async function lookupISBN(){
- var isbn=cleanISBN(el("#isbnInput").value),r=el("#guardianResult");if(isbn.length!==10&&isbn.length!==13){r.innerHTML='<div class="guardian red"><h3>ISBN looks incomplete</h3></div>';return}r.innerHTML='<div class="syncstatus">🧠 Book Intelligence Brain is gathering the best metadata...</div>';var found=null,sources=[];
+ var isbn=cleanISBN(el("#isbnInput").value),r=el("#guardianResult");
+ if(isbn.length!==10&&isbn.length!==13){r.innerHTML='<div class="guardian red"><h3>ISBN looks incomplete</h3></div>';return}
+
+ // HOTFIX: exact owned ISBNs are answered from the local catalog immediately.
+ var localExact=visible().find(function(b){return cleanISBN(b.edition&&b.edition.isbn)===isbn&&isbn});
+ if(localExact){
+  getOrBootstrapWorkIntelligence(localExact.title||"",localExact.author||"");
+  var localFound={
+   title:localExact.title||"",
+   author:localExact.author||"",
+   genres:(localExact.genres||[]).slice(),
+   tags:(localExact.tags||[]).slice(),
+   series:localExact.series||"",
+   seriesNo:localExact.seriesNo||"",
+   cover:localExact.cover||"",
+   edition:Object.assign({},localExact.edition||{},{isbn:isbn})
+  };
+  showMatch(localFound,"Your local Enchanted Bookshop catalog");
+  return;
+ }
+
+ r.innerHTML='<div class="syncstatus">🧠 Book Intelligence Brain is gathering the best metadata...</div>';
+ var found=null,sources=[];
  var g=await googleLookup("isbn:"+isbn,isbn);if(g){found=mergeFound(found,g);sources.push("Google Books")}
  var o=await openLibraryISBN(isbn);if(o){found=mergeFound(found,o);sources.push("Open Library")}
  if(found)found=await enrichBook(found,isbn);
@@ -462,7 +483,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10.1",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-1-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
