@@ -1,17 +1,15 @@
-# Enchanted Bookshop V4.7.5 — Series Bridge 2.0
+# Enchanted Bookshop V4.7.6 — Series Evidence Bridge
 
-Built from the proven V4.7.4 Series Sync Merge stable checkpoint.
+Built from V4.7.5 while preserving the proven V4.7.4 Series Sync Merge behavior.
 
-## V4.7.5
-Series discovery now reuses the normal work-level Google Books search and evaluates matching alternate editions together. If one edition omits series metadata but another matching edition contains a strong series statement, the Bookshop can carry that work-level series claim into the scanned edition as a user-confirmable suggestion.
+## What changed
+- Series discovery now prefers structured series labels before description heuristics.
+- Added broader generic parsing for Book/Volume/Part numbering, number words, ordinal wording, and publisher-style series labels.
+- Open Library search now requests representative edition metadata, including edition-level series fields when available.
+- Google Books discovery limits extra requests and stops the fallback query when usable evidence is already found.
+- Book Intelligence now shows a diagnostic line such as `Series search: 8 matching editions • 2 usable series claims`, and reports Google rate limiting when encountered.
+- No title-specific hardcoding was added for Promises & Pomegranates.
+- No Supabase schema changes.
 
-This specifically addresses the V4.7.3 failure mode where Promises and Pomegranates ISBN 9781464229015 was identified correctly but its newer edition did not expose Monsters & Muses #1 in the selected metadata record.
-
-## Preserved from V4.7.4
-- Books and Series Catalogs sync separately by record ID.
-- Pull + merge downloads without uploading.
-- Sync now performs a two-way merge then uploads the combined state.
-- Different series are combined rather than replacing one another.
-- Local/offline data remains intact.
-
-No Supabase SQL changes are required for V4.7.5.
+## Safety
+V4.7.4 book + Series Catalog two-way merge behavior is preserved. Keep normal backups and do not clear local storage during upgrades.
