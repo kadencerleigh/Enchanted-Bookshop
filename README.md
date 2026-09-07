@@ -1,16 +1,17 @@
-# Enchanted Bookshop V4.7.7 — Multi-Source Series Bridge + Metadata Cache
+# Enchanted Bookshop V4.7.8 — Work Intelligence Foundation
 
-Built from V4.7.6 while preserving the proven V4.7.4 Series Sync Merge behavior.
+Built from V4.7.7 while preserving the proven V4.7.4 Series Sync Merge behavior and V4.7.7 multi-source metadata/cache improvements.
 
 ## What changed
-- Exact-ISBN Open Library work relationships are the first series-evidence path.
-- Open Library work and edition records are inspected before Google fallback.
-- Google Books work results are shared/reused instead of requested repeatedly.
-- Successful metadata API responses are cached locally for 7 days in a bounded local cache.
-- Google Books can be rate-limited without blocking Open Library series evidence.
-- Book Intelligence diagnostics report matching editions, usable claims, source claims, cache hits, and Google rate limiting.
-- No title-specific hardcoding was added for Promises & Pomegranates.
-- No Supabase schema changes.
+- Adds a local Work Intelligence Brain keyed by normalized title + author.
+- When you save or edit a cataloged book, its work-level genres, tropes/tags, series + number, and non-zero spice rating become confirmed knowledge for that work.
+- Future scans of the same work reuse your confirmed knowledge before uncertain public metadata.
+- Work Intelligence is separate from edition metadata, so a different ISBN/edition can inherit story-level knowledge without copying edition details.
+- Book Intelligence clearly says when it is using your confirmed Work Brain knowledge.
+- Work Intelligence is included in JSON backup/restore.
+- V4.7.7 Open Library-first discovery, Google fallback, metadata cache, and diagnostics are preserved.
+- No title-specific Promises & Pomegranates hardcoding was added.
+- No Supabase schema changes in this foundation build. Work Intelligence is local-first and backup-protected; cloud sync can be added as a later migration.
 
 ## Safety
-The proven V4.7.4 book + Series Catalog two-way merge behavior is preserved. Keep backups and do not clear local storage during upgrades.
+V4.7.4 book + Series Catalog sync behavior is preserved. Keep backups and do not clear local storage during upgrades.
