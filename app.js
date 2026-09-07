@@ -233,17 +233,17 @@ function checkbox(name,label,checked){return'<div class="field"><label style="te
 function openBook(b){
  b=b||{id:"",workId:"",title:"",author:"",genres:[],tags:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""};var e=b.edition||{};
  el("#modalBody").innerHTML='<div class="eyebrow">'+(b.id?"Edit copy":"Add to collection")+'</div><h1 class="title">'+(b.id?"Edit Book":"A New Book")+'</h1><form id="bookForm"><div class="form">'+
- field("Title","title",b.title,true)+field("Author","author",b.author)+genreField(b.genres||[])+field("Tropes / Tags","tags",(b.tags||[]).join(", "))+(b.intelligence?'<div class="field full"><div class="guardian purple"><div class="eyebrow">✨ Book Intelligence</div><div class="muted">Genre: <b>'+esc((b.genres||[]).join(", ")||"Uncertain")+'</b><br>Series: <b>'+esc((b.series||"")+(b.seriesNo?" #"+b.seriesNo:"")||"Uncertain")+'</b><br>Spice: <b>'+((b.spiceConfidence||"unknown")=="unknown"?"Unknown":esc(String(b.spice||0))+"/5")+'</b> • '+esc(b.spiceConfidence||"unknown")+'<br>Source: '+esc(b.intelligenceSource||"Public metadata")+'</div></div></div>':'')+field("Series","series",b.series)+field("Series number","seriesNo",b.seriesNo)+
+ field("Title","title",b.title,true)+field("Author","author",b.author)+genreField(b.genres||[])+field("Tropes / Tags","tags",(b.tags||[]).join(", "))+(b.intelligence?'<div class="field full"><div class="guardian purple"><div class="eyebrow">✨ Book Intelligence</div><div class="muted">Genre: <b>'+esc((b.genres||[]).join(", ")||"Uncertain")+'</b><br>Series: <b>'+esc((b.series||"")+(b.seriesNo?" #"+b.seriesNo:"")||"Uncertain")+'</b>'+(b.seriesSuggested?' <span class="tiny">• possible — confirm below</span>':'')+'<br>Spice: <b>'+((b.spiceConfidence||"unknown")=="unknown"?"Unknown":esc(String(b.spice||0))+"/5")+'</b> • '+esc(b.spiceConfidence||"unknown")+'<br>Source: '+esc(b.intelligenceSource||"Public metadata")+'</div></div></div>':'')+field("Series","series",b.series)+field("Series number","seriesNo",b.seriesNo)+
  selectField("Reading status","status",["want-to-read","currently-reading","read","dnf","rereading"],b.status)+selectField("Rating","rating",["0","1","2","3","4","5"],String(b.rating||0))+selectField((b.spiceSuggested&&!b.spiceConfirmed?"Suggested spice":"Spice"),"spice",["0","1","2","3","4","5"],String(b.spice||0))+field("Finished date","finishedDate",b.finishedDate||"")+checkbox("readDateUnknown","🕰️ Read before tracking / date unknown",!!b.readDateUnknown)+
  field("ISBN","isbn",e.isbn)+selectField("Format","format",["Paperback","Hardcover","Box Set","Ebook","Audiobook","Other"],e.format||"Paperback")+field("Publisher","publisher",e.publisher)+field("Publication date","publicationDate",e.publicationDate)+field("Page count","pages",e.pages)+field("Printing","printing",e.printing)+field("Special features","special",(e.special||[]).join(", "),"",true)+
  '<div class="field full"><label>Notes</label><textarea name="notes">'+esc(b.notes||"")+'</textarea></div>'+checkbox("owned","I own this physical copy",b.owned)+checkbox("wantOwn","I want to own this",b.wantOwn)+checkbox("favorite","Favorite",b.favorite)+'</div><div class="actions">'+(b.id?'<button type="button" class="danger" id="deleteBtn">Delete</button>':'')+'<button class="primary" type="submit">'+(b.id?"Save changes":"Add to bookshop")+'</button></div></form>';
  el("#modal").classList.remove("hidden");
- el("#bookForm").onsubmit=function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),notes:f.get("notes"),edition:{isbn:f.get("isbn"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);save();closeModal();render();autoSyncMaybe()};
+ el("#bookForm").onsubmit=function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),notes:f.get("notes"),edition:{isbn:f.get("isbn"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);save();closeModal();render();autoSyncMaybe()};
  if(b.id)el("#deleteBtn").onclick=function(){if(confirm("Remove this copy from your bookshop?")){var x=state.books.find(function(x){return x.id===b.id});x.deleted=true;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.2 • Shopping Guardian</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.3 • Shopping Guardian</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -258,7 +258,101 @@ async function openLibraryISBN(isbn){try{var o=await fetch("https://openlibrary.
 function similarity(a,b){a=norm(a);b=norm(b);if(!a||!b)return 0;if(a===b)return 10;if(a.indexOf(b)>=0||b.indexOf(a)>=0)return 7;var aw=a.split(/\s+/),bw=b.split(/\s+/),hit=aw.filter(function(x){return bw.indexOf(x)>=0}).length;return hit/Math.max(aw.length,bw.length)*6}
 async function googleWorkSearch(title,author,isbn){try{var q='intitle:"'+title+'"'+(author?' inauthor:"'+author+'"':'');var g=await fetch("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(q)+"&maxResults=20");if(!g.ok)return null;var j=await g.json(),items=j.items||[],best=null,bestScore=-1;items.forEach(function(it){var v=it.volumeInfo||{},score=similarity(title,v.title||"")+similarity(author,(v.authors||[]).join(" "))+(v.description?3:0)+(v.categories&&v.categories.length?2:0);var ser=inferSeries(v.title||"",v.description||"");if(ser.series)score+=3;if(score>bestScore){bestScore=score;best=v}});if(!best)return null;var ser=inferSeries(best.title||"",best.description||"");return{title:best.title||title||"",author:(best.authors||[]).join(", "),genres:best.categories||[],description:best.description||"",cover:(best.imageLinks&&(best.imageLinks.thumbnail||best.imageLinks.smallThumbnail))||"",series:ser.series,seriesNo:ser.seriesNo,edition:{isbn:isbn,format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}}catch(e){return null}}
 async function openLibraryWorkSearch(title,author,isbn){try{var qs="title="+encodeURIComponent(title||"")+(author?"&author="+encodeURIComponent(author):"")+"&limit=12&fields=title,author_name,subject,first_publish_year,cover_i,key,series";var r=await fetch("https://openlibrary.org/search.json?"+qs);if(!r.ok)return null;var j=await r.json(),docs=j.docs||[],d=null,best=-1;docs.forEach(function(x){var sc=similarity(title,x.title||"")+similarity(author,(x.author_name||[]).join(" "))+(x.subject&&x.subject.length?2:0);if(sc>best){best=sc;d=x}});if(!d)return null;var desc="";if(d.key&&/^\/works\//.test(d.key)){try{var wr=await fetch("https://openlibrary.org"+d.key+".json");if(wr.ok){var w=await wr.json();desc=w.description&&((typeof w.description==="string")?w.description:w.description.value)||""}}catch(e){}}var ser=inferSeries(d.title||title,desc),ds=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||"");if(ds){var sm=ds.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm&&cleanSeriesName(sm[1])){ser.series=cleanSeriesName(sm[1]);if(sm[2])ser.seriesNo=sm[2]}}return{title:d.title||title||"",author:(d.author_name||[]).join(", "),genres:d.subject||[],description:desc,cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg"):"",series:ser.series,seriesNo:ser.seriesNo,edition:{isbn:isbn,format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}}catch(e){return null}}
-async function enrichBook(found,isbn){var out=found||{},title=out.title||"",author=out.author||"";if(title){var gw=await googleWorkSearch(title,author,isbn);out=mergeWorkSignals(out,gw);var ow=await openLibraryWorkSearch(out.title||title,out.author||author,isbn);out=mergeWorkSignals(out,ow)}if((!out.author||!(out.genres||[]).length||!out.description)&&out.title){out=mergeWorkSignals(out,await googleWorkSearch(out.title,out.author||"",isbn))}var ser=inferSeries(out.title||"",out.description||"");if(!out.series&&ser.series)out.series=ser.series;if(!out.seriesNo&&ser.seriesNo)out.seriesNo=ser.seriesNo;var intel=intelligenceFor(out);if(!out.series&&intel.series)out.series=intel.series;if(!out.seriesNo&&intel.seriesNo)out.seriesNo=intel.seriesNo;return out}
+
+function validSeriesClaim(series,title,author){
+ series=cleanSeriesName(series||"");
+ if(!series)return false;
+ var n=norm(series);
+ if(n===norm(title)||n===norm(author)||n==="series"||n==="book")return false;
+ if(n.length<3||n.length>80)return false;
+ return true
+}
+function parseSeriesLabel(raw,title,author){
+ raw=String(raw||"").replace(/\s+/g," ").trim();
+ if(!raw)return null;
+ var m=raw.match(/^(.*?)(?:\s*[-–—,:#]?\s*(?:book|volume|vol\.?)?\s*#?\s*(\d+(?:\.\d+)?))\s*$/i);
+ var name=cleanSeriesName(m?m[1]:raw),no=m&&m[2]?m[2]:"";
+ if(!validSeriesClaim(name,title,author))return null;
+ return{series:name,seriesNo:no};
+}
+function addSeriesClaim(claims,series,seriesNo,score,source,title,author){
+ if(!validSeriesClaim(series,title,author))return;
+ var key=norm(cleanSeriesName(series)),c=claims[key]||(claims[key]={series:cleanSeriesName(series),score:0,numbers:{},sources:[]});
+ c.score+=score||1;
+ if(seriesNo){var no=String(seriesNo);c.numbers[no]=(c.numbers[no]||0)+(score||1)}
+ if(source&&c.sources.indexOf(source)<0)c.sources.push(source);
+}
+function bestSeriesClaim(claims){
+ var a=Object.keys(claims).map(function(k){var c=claims[k],bestNo="",bestNoScore=0;Object.keys(c.numbers).forEach(function(n){if(c.numbers[n]>bestNoScore){bestNo=n;bestNoScore=c.numbers[n]}});c.seriesNo=bestNo;c.numberScore=bestNoScore;return c});
+ a.sort(function(x,y){return(y.score+(y.seriesNo?2:0))-(x.score+(x.seriesNo?2:0))});
+ if(!a.length)return null;
+ var top=a[0],second=a[1],margin=top.score-(second?second.score:0);
+ if(top.score<7)return null;
+ return{series:top.series,seriesNo:top.seriesNo||"",confidence:(top.score>=13&&margin>=3?"strong":"possible"),source:top.sources.join(" + ")||"Series Brain bridge",score:top.score};
+}
+async function discoverSeriesForWork(title,author){
+ if(!title)return null;
+ var claims={},queries=[
+  'intitle:"'+title+'"'+(author?' inauthor:"'+author+'"':''),
+  '"'+title+'" '+(author?'"'+author+'" ':'')+'series',
+  title+' '+(author||"")+' series'
+ ];
+ for(var qi=0;qi<queries.length;qi++){
+  try{
+   var gr=await fetch("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(queries[qi])+"&maxResults=40");
+   if(gr.ok){
+    var gj=await gr.json(),items=gj.items||[];
+    items.forEach(function(it){
+     var v=it.volumeInfo||{},va=(v.authors||[]).join(", "),ts=similarity(title,v.title||""),as=author?similarity(author,va):6;
+     if(ts<6||as<4)return;
+     var blob=[v.title||"",v.subtitle||"",v.description||"",((v.categories||[]).join(" "))].join(" ").replace(/<[^>]+>/g," ");
+     var inferred=inferSeries(v.title||"",blob);
+     if(inferred.series)addSeriesClaim(claims,inferred.series,inferred.seriesNo,4+(ts>=9?2:0)+(as>=7?1:0),"Google Books",title,author);
+     var p1=/(?:part|book|volume)\s*(?:#|no\.?\s*)?(\d+(?:\.\d+)?)\s+(?:of|in)\s+(?:the\s+)?([^.;()]{3,70}?)(?:\s+series)?(?:[.;()]|$)/ig,m;
+     while((m=p1.exec(blob)))addSeriesClaim(claims,m[2],m[1],5,"Google Books",title,author);
+     var p2=/(?:the\s+)?([^.;()]{3,70}?)\s+series[,;:\s-]*(?:book|volume)?\s*(?:#|no\.?\s*)?(\d+(?:\.\d+)?)/ig;
+     while((m=p2.exec(blob)))addSeriesClaim(claims,m[1],m[2],5,"Google Books",title,author);
+     var p3=/(?:first|1st)\s+(?:book|novel|installment)\s+(?:in|of)\s+(?:the\s+)?([^.;()]{3,70}?)(?:\s+series)?(?:[.;()]|$)/ig;
+     while((m=p3.exec(blob)))addSeriesClaim(claims,m[1],"1",5,"Google Books",title,author);
+    });
+   }
+  }catch(e){}
+ }
+ try{
+  var oq="title="+encodeURIComponent(title)+(author?"&author="+encodeURIComponent(author):"")+"&limit=50&fields=title,subtitle,author_name,series";
+  var or=await fetch("https://openlibrary.org/search.json?"+oq);
+  if(or.ok){
+   var oj=await or.json();
+   (oj.docs||[]).forEach(function(d){
+    var da=(d.author_name||[]).join(", "),ts=similarity(title,d.title||""),as=author?similarity(author,da):6;
+    if(ts<6||as<4)return;
+    var ss=Array.isArray(d.series)?d.series:[d.series];
+    (ss||[]).forEach(function(raw){var p=parseSeriesLabel(raw,title,author);if(p)addSeriesClaim(claims,p.series,p.seriesNo,7+(ts>=9?2:0)+(as>=7?1:0),"Open Library",title,author)})
+   });
+  }
+ }catch(e){}
+ return bestSeriesClaim(claims)
+}
+
+async function enrichBook(found,isbn){
+ var out=found||{},title=out.title||"",author=out.author||"";
+ if(title){
+  var gw=await googleWorkSearch(title,author,isbn);out=mergeWorkSignals(out,gw);
+  var ow=await openLibraryWorkSearch(out.title||title,out.author||author,isbn);out=mergeWorkSignals(out,ow)
+ }
+ if((!out.author||!(out.genres||[]).length||!out.description)&&out.title){out=mergeWorkSignals(out,await googleWorkSearch(out.title,out.author||"",isbn))}
+ var ser=inferSeries(out.title||"",out.description||"");
+ if(!out.series&&ser.series)out.series=ser.series;
+ if(!out.seriesNo&&ser.seriesNo)out.seriesNo=ser.seriesNo;
+ var intel=intelligenceFor(out);
+ if(!out.series&&intel.series)out.series=intel.series;
+ if(!out.seriesNo&&intel.seriesNo)out.seriesNo=intel.seriesNo;
+ if(!out.series&&out.title){
+  var bridge=await discoverSeriesForWork(out.title,out.author||author||"");
+  if(bridge){out.series=bridge.series;out.seriesNo=bridge.seriesNo||"";out.seriesSuggested=true;out.seriesConfidence=bridge.confidence||"possible";out.seriesSource=bridge.source||"Series Brain bridge"}
+ }
+ return out
+}
 async function lookupISBN(){
  var isbn=cleanISBN(el("#isbnInput").value),r=el("#guardianResult");if(isbn.length!==10&&isbn.length!==13){r.innerHTML='<div class="guardian red"><h3>ISBN looks incomplete</h3></div>';return}r.innerHTML='<div class="syncstatus">🧠 Book Intelligence Brain is gathering the best metadata...</div>';var found=null,sources=[];
  var g=await googleLookup("isbn:"+isbn,isbn);if(g){found=mergeFound(found,g);sources.push("Google Books")}
@@ -273,9 +367,9 @@ function showMatch(f,source){
  if(same){r.innerHTML='<div class="guardian yellow"><div class="eyebrow">Same work • different edition</div><h3>🟡 WAITTTT — DIFFERENT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(same.edition.format||"Unknown")+'<br>'+esc(same.edition.isbn||"No ISBN saved")+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.edition.format||"Unknown")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="addFound">Add this edition</button></div></div>';el("#addFound").onclick=function(){prefill(f)};return}
  r.innerHTML='<div class="guardian green"><h3>🟢 NEW TO YOUR LIBRARY ✨</h3><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(isbn)+'</div><div class="actions"><button class="primary" id="addFound">Add to bookshop</button></div></div>';el("#addFound").onclick=function(){prefill(f)}
 }
-function prefill(f){var intel=intelligenceFor(f);openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:intel.series,seriesNo:intel.seriesNo,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:true,spiceConfirmed:false,spiceConfidence:intel.spiceConfidence,intelligence:true,intelligenceSource:intel.source,readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
+function prefill(f){var intel=intelligenceFor(f);var seriesName=f.series||intel.series||"",seriesNo=f.seriesNo||intel.seriesNo||"";openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:!!f.seriesSuggested,seriesConfidence:f.seriesConfidence||"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:true,spiceConfirmed:false,spiceConfidence:intel.spiceConfidence,intelligence:true,intelligenceSource:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges()},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.3",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges()},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-3-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
