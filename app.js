@@ -99,7 +99,49 @@ function inferSeries(title,desc){var t=((title||"")+" "+(desc||"")).replace(/<[^
 function seriesFromCatalog(title){for(var i=0;i<seriesCatalog.length;i++){var s=seriesCatalog[i];if(s.deleted)continue;for(var j=0;j<(s.books||[]).length;j++){if(norm(s.books[j].title)===norm(title))return{series:s.name,seriesNo:s.books[j].number||""}}}return{series:"",seriesNo:""}}
 function suggestSpice(gs,d,title,author){var k=knownBook(title,author);if(k&&k.spice!==undefined)return k.spice;var t=((gs||[]).join(" ")+" "+(d||"")+" "+(title||"")).toLowerCase();if(/erotic|erotica|explicit sex|sexually explicit|high heat|open door|very spicy/.test(t))return 5;if(/dark romance|mafia romance|steamy|spicy/.test(t))return 4;return 0}
 function spiceConfidence(gs,d,score,title,author){var k=knownBook(title,author);if(k&&k.spiceConfidence)return k.spiceConfidence;if(!score)return"unknown";var t=((gs||[]).join(" ")+" "+(d||"")).toLowerCase();if(/erotic|erotica|explicit sex|sexually explicit|high heat|open door|very spicy|dark romance|mafia romance|steamy|spicy/.test(t))return"metadata signal";return"unknown"}
-function intelligenceFor(f){var k=knownBook(f.title||"",f.author||""),learned=getWorkIntelligence(f.title||"",f.author||""),cat=seriesFromCatalog(f.title||""),ser=(k&&k.series)?{series:k.series,seriesNo:k.seriesNo||""}:cat.series?cat:inferSeries(f.title||"",f.description||"");var gs=(learned&&learned.genres&&learned.genres.length)?learned.genres.slice():mapGenres(f.genres||[],f.title||"",f.description||"",f.author||""),tags=(learned&&learned.tags&&learned.tags.length)?learned.tags.slice():inferTags(f.genres||[],f.title||"",f.description||"",f.author||""),ss=suggestSpice(gs,f.description||"",f.title||"",f.author||""),conf=spiceConfidence(gs,f.description||"",ss,f.title||"",f.author||"");if(learned&&learned.spice!=null){ss=+learned.spice;conf="confirmed by you"}var learnedSeries=(learned&&learned.series)?learned.series:"",learnedNo=(learned&&learned.seriesNo)?learned.seriesNo:"";return{genres:gs,tags:tags,series:learnedSeries||ser.series||f.series||"",seriesNo:learnedNo||ser.seriesNo||f.seriesNo||"",spice:ss,spiceConfidence:conf,source:learned?"Confirmed in your Bookshop Brain":(k?(k.source||"Enchanted Bookshop knowledge"):"Public book metadata"),workBrain:!!learned}}
+
+function normalizedWorkKey(title,author){
+ return norm((title||"")+"|"+(author||""))
+}
+function findCatalogedWorkMatch(title,author){
+ var nt=norm(title||""),na=norm(author||"");
+ if(!nt)return null;
+ var exact=state.books.find(function(b){
+  return norm(b.title||"")===nt && (!na || norm(b.author||"")===na)
+ });
+ if(exact)return exact;
+ return state.books.find(function(b){
+  var bt=norm(b.title||""),ba=norm(b.author||"");
+  return bt===nt && (!na || !ba || ba===na)
+ })||null
+}
+function learnWorkFromCatalogedCopy(book){
+ if(!book)return null;
+ var payload={
+  title:book.title||"",
+  author:book.author||"",
+  genres:Array.isArray(book.genres)?book.genres.slice():[],
+  tags:Array.isArray(book.tags)?book.tags.slice():[],
+  series:book.series||"",
+  seriesNo:book.seriesNo||"",
+  spice:(book.spice==null||book.spice==="")?null:+book.spice,
+  source:"Confirmed in your cataloged copy",
+  confirmed:true,
+  updatedAt:book.updatedAt||now()
+ };
+ if(!(payload.genres.length||payload.tags.length||payload.series||payload.seriesNo||payload.spice!=null))return null;
+ setWorkIntelligence(payload.title,payload.author,payload);
+ return payload
+}
+function getOrBootstrapWorkIntelligence(title,author){
+ var learned=getWorkIntelligence(title||"",author||"");
+ if(learned)return learned;
+ var existing=findCatalogedWorkMatch(title,author);
+ if(!existing)return null;
+ return learnWorkFromCatalogedCopy(existing)
+}
+
+function intelligenceFor(f){var k=knownBook(f.title||"",f.author||""),learned=getOrBootstrapWorkIntelligence(f.title||"",f.author||""),cat=seriesFromCatalog(f.title||""),ser=(k&&k.series)?{series:k.series,seriesNo:k.seriesNo||""}:cat.series?cat:inferSeries(f.title||"",f.description||"");var gs=(learned&&learned.genres&&learned.genres.length)?learned.genres.slice():mapGenres(f.genres||[],f.title||"",f.description||"",f.author||""),tags=(learned&&learned.tags&&learned.tags.length)?learned.tags.slice():inferTags(f.genres||[],f.title||"",f.description||"",f.author||""),ss=suggestSpice(gs,f.description||"",f.title||"",f.author||""),conf=spiceConfidence(gs,f.description||"",ss,f.title||"",f.author||"");if(learned&&learned.spice!=null){ss=+learned.spice;conf="confirmed by you"}var learnedSeries=(learned&&learned.series)?learned.series:"",learnedNo=(learned&&learned.seriesNo)?learned.seriesNo:"";return{genres:gs,tags:tags,series:learnedSeries||ser.series||f.series||"",seriesNo:learnedNo||ser.seriesNo||f.seriesNo||"",spice:ss,spiceConfidence:conf,source:learned?"Confirmed in your Bookshop Brain":(k?(k.source||"Enchanted Bookshop knowledge"):"Public book metadata"),workBrain:!!learned}}
 function currentReadingBooks(){return owned().filter(function(b){return b.status==="currently-reading"||b.status==="rereading"})}
 
 function home(){
@@ -221,7 +263,8 @@ function syncPage(){
  '<div class="box"><h3>3. Sync your library</h3><p class="tiny">V4.7.4 merges books and Series Catalogs separately by ID and keeps the newest version of the same record. Different series are combined instead of replacing each other. <b>Pull + merge</b> never uploads; <b>Sync now</b> performs a two-way merge, then uploads the combined result. Your local copy remains available offline.</p><label><input type="checkbox" id="autoSync" '+(s.auto?"checked":"")+'> Auto-sync after local changes when online</label><div class="actions"><button class="pill" id="pullSync">☁️ Pull + merge</button><button class="primary" id="pushSync">☁️ Sync now</button></div><div id="syncRunStatus" class="syncstatus">Ready.</div></div>'+
  '<div class="box"><h3>Server setup</h3><p class="tiny">The included <b>SUPABASE_SETUP.sql</b> file creates the table and row-level security rules required for this app. Run it once in your Supabase SQL editor before syncing.</p></div>'
 }
-function render(){
+var __workBrainBootstrapped=false;
+function render(){if(!__workBrainBootstrapped){__workBrainBootstrapped=true;try{bootstrapAllCatalogedWorkIntelligence()}catch(e){console.warn('Work Brain bootstrap skipped',e)}}
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
  if(state.view==="home")c.innerHTML=home();
@@ -253,7 +296,7 @@ function openBook(b){
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.9 • Cover Recovery + Work Brain Preview</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10 • Work Brain Bootstrap</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -377,9 +420,22 @@ async function lookupISBN(){
  showMatch(found,uniqText(sources).join(" + ")||"Book Intelligence Brain")
 }
 
+
+function bootstrapAllCatalogedWorkIntelligence(){
+ var changed=0;
+ (state.books||[]).forEach(function(b){
+  if(!getWorkIntelligence(b.title||"",b.author||"")){
+   var learned=learnWorkFromCatalogedCopy(b);
+   if(learned)changed++
+  }
+ });
+ return changed
+}
+
 function workBrainPreviewHTML(f){
- var intel=intelligenceFor(f),gs=(intel.genres||[]).map(esc).join(" • ")||"None saved",ts=(intel.tags||[]).map(esc).join(" • ")||"None saved",ser=intel.series?(esc(intel.series)+(intel.seriesNo?" #"+esc(intel.seriesNo):"")):"Unknown",sp=intel.spice?spice(intel.spice)+" ("+intel.spice+"/5)":"Unknown";
- return '<div class="guardian purple"><div class="eyebrow">🧠 Work Intelligence Preview</div><h3>'+esc(f.title||"This work")+'</h3><div class="muted"><b>Series:</b> '+ser+'<br><b>Genres:</b> '+gs+'<br><b>Tropes / tags:</b> '+ts+'<br><b>Spice:</b> '+sp+'<br><b>Source:</b> '+esc(intel.source||"Book Intelligence")+'</div><div class="tiny" style="margin-top:10px">Preview only — this does not add another copy or change your library.</div></div>'
+ var intel=intelligenceFor(f),gs=(intel.genres||[]).map(esc).join(" • ")||"None saved",ts=(intel.tags||[]).map(esc).join(" • ")||"None saved",ser=intel.series?(esc(intel.series)+(intel.seriesNo?" #"+esc(intel.seriesNo):"")):"Unknown",sp=(intel.spice!=null&&intel.spice!=="")?spice(+intel.spice)+" ("+intel.spice+"/5)":"Unknown";
+ var src=intel.source||"Book Intelligence";
+ return '<div class="guardian purple"><div class="eyebrow">🧠 Work Intelligence Preview</div><h3>'+esc(f.title||"This work")+'</h3><div class="muted"><b>Series:</b> '+ser+'<br><b>Genres:</b> '+gs+'<br><b>Tropes / tags:</b> '+ts+'<br><b>Spice:</b> '+sp+'<br><b>Source:</b> '+esc(src)+'</div><div class="tiny" style="margin-top:10px">Preview only — this does not add another copy or change your library.</div></div>'
 }
 function attachImageProbe(url,onGood,onBad){
  if(!url){if(onBad)onBad();return}
@@ -400,13 +456,13 @@ function saveRecoveredCover(book,url){
 
 function showMatch(f,source){
  var isbn=cleanISBN(f.edition.isbn),exact=visible().find(function(b){return cleanISBN(b.edition&&b.edition.isbn)===isbn&&isbn}),same=visible().find(function(b){return norm(b.title)===norm(f.title)&&(!f.author||!b.author||norm(b.author)===norm(f.author))}),r=el("#guardianResult");
- if(exact){var canCover=!!f.cover&&f.cover!==exact.cover;r.innerHTML='<div class="guardian red"><div class="eyebrow">Exact ISBN match</div><h3>🚨 YOU ALREADY OWN THIS EXACT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(exact.title)+'<br>'+esc(exact.author)+'<br>'+esc(exact.edition.format||"")+'<br>'+esc(isbn)+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(f.edition.format||"")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="previewBrain">🧠 Preview Work Intelligence</button>'+(canCover?'<button class="pill" id="recoverCover">✨ Recover cover</button>':'')+'</div><div id="brainPreview"></div><div class="tiny">Metadata: '+esc(source)+'</div></div>';el("#previewBrain").onclick=function(){el("#brainPreview").innerHTML=workBrainPreviewHTML(f)};if(canCover)el("#recoverCover").onclick=function(){saveRecoveredCover(exact,f.cover)};return}
+ if(exact){getOrBootstrapWorkIntelligence(exact.title||f.title,exact.author||f.author);var canCover=!!f.cover&&f.cover!==exact.cover;r.innerHTML='<div class="guardian red"><div class="eyebrow">Exact ISBN match</div><h3>🚨 YOU ALREADY OWN THIS EXACT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(exact.title)+'<br>'+esc(exact.author)+'<br>'+esc(exact.edition.format||"")+'<br>'+esc(isbn)+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(f.edition.format||"")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="previewBrain">🧠 Preview Work Intelligence</button>'+(canCover?'<button class="pill" id="recoverCover">✨ Recover cover</button>':'')+'</div><div id="brainPreview"></div><div class="tiny">Metadata: '+esc(source)+'</div></div>';el("#previewBrain").onclick=function(){el("#brainPreview").innerHTML=workBrainPreviewHTML(f)};if(canCover)el("#recoverCover").onclick=function(){saveRecoveredCover(exact,f.cover)};return}
  if(same){r.innerHTML='<div class="guardian yellow"><div class="eyebrow">Same work • different edition</div><h3>🟡 WAITTTT — DIFFERENT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(same.edition.format||"Unknown")+'<br>'+esc(same.edition.isbn||"No ISBN saved")+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.edition.format||"Unknown")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="addFound">Add this edition</button></div></div>';el("#addFound").onclick=function(){prefill(f)};return}
  r.innerHTML='<div class="guardian green"><h3>🟢 NEW TO YOUR LIBRARY ✨</h3><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(isbn)+'</div><div class="actions"><button class="primary" id="addFound">Add to bookshop</button></div></div>';el("#addFound").onclick=function(){prefill(f)}
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.9",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-9-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
