@@ -295,7 +295,7 @@ function openBook(b){
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10.2 • Exact Cover Recovery</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10.3 • Cover Candidate Refresh</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -428,23 +428,7 @@ async function lookupISBN(){
    cover:localExact.cover||"",
    edition:Object.assign({},localExact.edition||{},{isbn:isbn})
   };
-  showMatch(localFound,"Your local Enchanted Bookshop catalog");
-  // Non-blocking cover enrichment: duplicate screen appears immediately, then cover recovery can gain better candidates.
-  (async function(){
-   try{
-    var gf=await googleLookup("isbn:"+isbn,isbn);
-    var of=await openLibraryISBN(isbn);
-    var enriched=mergeFound(localFound,gf||{});
-    enriched=mergeFound(enriched,of||{});
-    enriched=await enrichBook(enriched,isbn);
-    // Preserve saved book identity while allowing cover recovery metadata to improve.
-    localFound.cover=enriched&&enriched.cover||localFound.cover||"";
-    localFound.workCover=enriched&&enriched.workCover||localFound.workCover||"";
-    localFound.coverCandidates=enriched&&enriched.coverCandidates||localFound.coverCandidates||[];
-    localFound.coverSource=enriched&&enriched.coverSource||localFound.coverSource||"";
-   }catch(e){console.warn("Background cover enrichment skipped",e)}
-  })();
-  return;
+  showMatch(localFound,"Your local Enchanted Bookshop catalog");  return;
  }
 
  r.innerHTML='<div class="syncstatus">🧠 Book Intelligence Brain is gathering the best metadata...</div>';
@@ -547,6 +531,36 @@ async function recoverCoverForOwnedBook(owned,found,host){
  render()
 }
 
+
+async function findAndRecoverCoverForExactOwned(exact,localFound,host){
+ var r=host||el("#guardianResult");
+ var btn=el("#recoverCover");
+ if(btn){btn.disabled=true;btn.textContent="✨ Searching for cover..."}
+ var status=el("#coverRecoveryStatus");
+ if(!status&&r){
+  r.innerHTML += '<div class="syncstatus" id="coverRecoveryStatus">✨ Searching exact-edition cover sources...</div>';
+  status=el("#coverRecoveryStatus")
+ }
+ try{
+  var isbn=cleanISBN(exact&&exact.edition&&exact.edition.isbn||localFound&&localFound.edition&&localFound.edition.isbn||"");
+  var found=Object.assign({},localFound||{});
+  if(isbn){
+   var gf=await googleLookup("isbn:"+isbn,isbn);
+   var of=await openLibraryISBN(isbn);
+   if(gf)found=mergeFound(found,gf);
+   if(of)found=mergeFound(found,of);
+   if(found&&found.title)found=await enrichBook(found,isbn)
+  }
+  await recoverCoverForOwnedBook(exact,found,r)
+ }catch(e){
+  console.warn("Cover search failed",e);
+  if(status)status.textContent="🕯️ Cover search failed safely. Nothing was changed."
+ }finally{
+  var b=el("#recoverCover");
+  if(b){b.disabled=false;b.textContent="✨ Find / Recover Cover"}
+ }
+}
+
 function workBrainPreviewHTML(f){
  var intel=intelligenceFor(f),gs=(intel.genres||[]).map(esc).join(" • ")||"None saved",ts=(intel.tags||[]).map(esc).join(" • ")||"None saved",ser=intel.series?(esc(intel.series)+(intel.seriesNo?" #"+esc(intel.seriesNo):"")):"Unknown",sp=(intel.spice!=null&&intel.spice!=="")?spice(+intel.spice)+" ("+intel.spice+"/5)":"Unknown";
  var src=intel.source||"Book Intelligence";
@@ -571,13 +585,13 @@ function saveRecoveredCover(book,url){
 
 function showMatch(f,source){
  var isbn=cleanISBN(f.edition.isbn),exact=visible().find(function(b){return cleanISBN(b.edition&&b.edition.isbn)===isbn&&isbn}),same=visible().find(function(b){return norm(b.title)===norm(f.title)&&(!f.author||!b.author||norm(b.author)===norm(f.author))}),r=el("#guardianResult");
- if(exact){getOrBootstrapWorkIntelligence(exact.title||f.title,exact.author||f.author);var canCover=!exact.cover||!!f.cover&&f.cover!==exact.cover;r.innerHTML='<div class="guardian red"><div class="eyebrow">Exact ISBN match</div><h3>🚨 YOU ALREADY OWN THIS EXACT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(exact.title)+'<br>'+esc(exact.author)+'<br>'+esc(exact.edition.format||"")+'<br>'+esc(isbn)+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(f.edition.format||"")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="previewBrain">🧠 Preview Work Intelligence</button>'+(canCover?'<button class="pill" id="recoverCover">✨ Recover cover</button>':'')+'</div><div id="brainPreview"></div><div class="tiny">Metadata: '+esc(source)+'</div></div>';el("#previewBrain").onclick=function(){el("#brainPreview").innerHTML=workBrainPreviewHTML(f)};if(canCover)el("#recoverCover").onclick=async function(){await recoverCoverForOwnedBook(exact,f,r)};return}
+ if(exact){getOrBootstrapWorkIntelligence(exact.title||f.title,exact.author||f.author);var canCover=!exact.cover||!!f.cover&&f.cover!==exact.cover;r.innerHTML='<div class="guardian red"><div class="eyebrow">Exact ISBN match</div><h3>🚨 YOU ALREADY OWN THIS EXACT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(exact.title)+'<br>'+esc(exact.author)+'<br>'+esc(exact.edition.format||"")+'<br>'+esc(isbn)+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(f.edition.format||"")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="previewBrain">🧠 Preview Work Intelligence</button>'+(canCover?'<button class="pill" id="recoverCover">✨ Find / Recover Cover</button><div class="tiny" style="margin-top:8px">No cover is saved for this copy yet. Search is on-demand and will not change other book data.</div>':'')+'</div><div id="brainPreview"></div><div class="tiny">Metadata: '+esc(source)+'</div></div>';el("#previewBrain").onclick=function(){el("#brainPreview").innerHTML=workBrainPreviewHTML(f)};if(canCover)el("#recoverCover").onclick=async function(){await findAndRecoverCoverForExactOwned(exact,f,r)};return}
  if(same){r.innerHTML='<div class="guardian yellow"><div class="eyebrow">Same work • different edition</div><h3>🟡 WAITTTT — DIFFERENT EDITION</h3><div class="compare"><div><b>Your copy</b><div class="muted">'+esc(same.edition.format||"Unknown")+'<br>'+esc(same.edition.isbn||"No ISBN saved")+'</div></div><div><b>In your hand</b><div class="muted">'+esc(f.edition.format||"Unknown")+'<br>'+esc(isbn)+'</div></div></div><div class="actions"><button class="primary" id="addFound">Add this edition</button></div></div>';el("#addFound").onclick=function(){prefill(f)};return}
  r.innerHTML='<div class="guardian green"><h3>🟢 NEW TO YOUR LIBRARY ✨</h3><div class="muted">'+esc(f.title)+'<br>'+esc(f.author)+'<br>'+esc(isbn)+'</div><div class="actions"><button class="primary" id="addFound">Add to bookshop</button></div></div>';el("#addFound").onclick=function(){prefill(f)}
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10.2",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-2-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10.3",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-3-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
