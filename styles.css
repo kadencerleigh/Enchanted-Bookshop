@@ -233,3 +233,37 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
     scroll-margin-top:72px;
   }
 }
+
+
+/* V4.7.14.3 — Browse mobile hotfix */
+@media(max-width:820px){
+  /* Android/Chromium can keep drawing an overlay track even when display:none is used.
+     Make every scrollbar component transparent/zero-height while preserving touch scrolling. */
+  .browse-panel .toolbar,
+  .browse-panel .browse-chips{
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:none!important;
+    scrollbar-color:transparent transparent!important;
+    -ms-overflow-style:none!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  .browse-panel .toolbar::-webkit-scrollbar,
+  .browse-panel .browse-chips::-webkit-scrollbar{
+    width:0!important;
+    height:0!important;
+    background:transparent!important;
+  }
+  .browse-panel .toolbar::-webkit-scrollbar-track,
+  .browse-panel .toolbar::-webkit-scrollbar-thumb,
+  .browse-panel .browse-chips::-webkit-scrollbar-track,
+  .browse-panel .browse-chips::-webkit-scrollbar-thumb{
+    background:transparent!important;
+    border:0!important;
+  }
+
+  /* The extra bottom padding made the Android scrollbar especially visible. */
+  .browse-panel .toolbar{
+    padding-bottom:0!important;
+  }
+}
