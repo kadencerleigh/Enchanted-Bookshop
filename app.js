@@ -56,7 +56,25 @@ var workIntelligence={};try{workIntelligence=JSON.parse(localStorage.getItem(WOR
 function saveWorkIntelligence(){localStorage.setItem(WORK_INTEL_KEY,JSON.stringify(workIntelligence))}
 function workIntelKey(title,author){return norm(title)+"|"+norm(author)}
 function getWorkIntelligence(title,author){var exact=workIntelligence[workIntelKey(title,author)];if(exact)return exact;var t=norm(title);var ks=Object.keys(workIntelligence);for(var i=0;i<ks.length;i++){var r=workIntelligence[ks[i]]||{};if(norm(r.title)===t&&(!author||!r.author||norm(r.author)===norm(author)))return r}return null}
-function learnWorkIntelligence(b){if(!b||!b.title)return;var key=workIntelKey(b.title,b.author||""),old=workIntelligence[key]||{},rec={title:b.title,author:b.author||"",genres:uniqText(b.genres||[]),tags:uniqText(b.tags||[]),series:String(b.series||"").trim(),seriesNo:String(b.seriesNo||"").trim(),spice:(+b.spice>0?+b.spice:null),confirmedAt:now(),source:"Confirmed in your Bookshop Brain"};if(!rec.genres.length&&old.genres)rec.genres=old.genres;if(!rec.tags.length&&old.tags)rec.tags=old.tags;if(!rec.series&&old.series){rec.series=old.series;rec.seriesNo=old.seriesNo||""}if(rec.spice===null&&old.spice!=null)rec.spice=old.spice;workIntelligence[key]=rec;saveWorkIntelligence()}
+function learnWorkIntelligence(b){if(!b||!b.title)return;var key=workIntelKey(b.title,b.author||""),old=workIntelligence[key]||{},rec={title:b.title,author:b.author||"",genres:uniqText(b.genres||[]),tags:uniqText(b.tags||[]),series:String(b.series||"").trim(),seriesNo:String(b.seriesNo||"").trim(),spice:(+b.spice>0?+b.spice:null),confirmedAt:now(),source:"Confirmed in your Bookshop Brain"};if(!rec.genres.length&&old.genres)rec.genres=old.genres;if(!rec.tags.length&&old.tags)rec.tags=old.tags;if(!rec.series&&old.series){rec.series=old.series;rec.seriesNo=old.seriesNo||""}if(rec.spice===null&&old.spice!=null)rec.spice=old.spice;if(old.knownISBNs)rec.knownISBNs=old.knownISBNs;if(old.updatedAt)rec.updatedAt=old.updatedAt;workIntelligence[key]=rec;saveWorkIntelligence()}
+function learnedISBNEntry(isbn){
+ isbn=cleanISBN(isbn);if(!isbn)return null;
+ var keys=Object.keys(workIntelligence||{});
+ for(var i=0;i<keys.length;i++){var rec=workIntelligence[keys[i]]||{},arr=[].concat(rec.knownISBNs||[]);for(var j=0;j<arr.length;j++){var ent=typeof arr[j]==="string"?{isbn:arr[j]}:(arr[j]||{});if(cleanISBN(ent.isbn)===isbn)return{key:keys[i],record:rec,entry:ent}}}
+ return null
+}
+function rememberISBNForWork(isbn,b){
+ isbn=cleanISBN(isbn);if(!isbn||!b||!b.title)return null;
+ var key=workIntelKey(b.title,b.author||""),rec=workIntelligence[key];
+ if(!rec){learnWorkIntelligence(b);rec=workIntelligence[key]||{title:b.title,author:b.author||""}}
+ var arr=[].concat(rec.knownISBNs||[]),exists=false;
+ arr=arr.map(function(x){var ent=typeof x==="string"?{isbn:x}:(x||{});if(cleanISBN(ent.isbn)===isbn){exists=true;ent.isbn=isbn;ent.learnedAt=ent.learnedAt||now();ent.source=ent.source||"Confirmed by you in Unknown ISBN Rescue"}return ent});
+ if(!exists)arr.push({isbn:isbn,learnedAt:now(),source:"Confirmed by you in Unknown ISBN Rescue"});
+ rec.knownISBNs=arr;rec.updatedAt=now();rec.source=rec.source||"Confirmed in your Bookshop Brain";workIntelligence[key]=rec;saveWorkIntelligence();autoSyncMaybe();return rec
+}
+function learnedFoundForISBN(hit,isbn){
+ var rec=hit&&hit.record||{};return{title:rec.title||"",author:rec.author||"",genres:(rec.genres||[]).slice(),tags:(rec.tags||[]).slice(),series:rec.series||"",seriesNo:rec.seriesNo||"",cover:"",edition:{isbn:cleanISBN(isbn),name:"",format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}
+}
 function yearNow(){return new Date().getFullYear()}
 function dateOnly(){var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
 function readYear(b){return String(b.finishedDate||"").slice(0,4)}
@@ -540,7 +558,7 @@ el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormDa
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.3 • Unknown ISBN Rescue</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.4 • Bookshop Learning Brain</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -676,6 +694,13 @@ async function lookupISBN(){
   showMatch(localFound,"Your local Enchanted Bookshop catalog");  return;
  }
 
+ // V4.8.4: recognize ISBNs the user previously taught the Bookshop before calling public APIs.
+ var learnedHit=learnedISBNEntry(isbn);
+ if(learnedHit){
+  showMatch(learnedFoundForISBN(learnedHit,isbn),"Your Bookshop Learning Brain • remembered ISBN");
+  return;
+ }
+
  r.innerHTML='<div class="syncstatus">🧠 Book Intelligence Brain is gathering the best metadata...</div>';
  var found=null,sources=[];
  var g=await googleLookup("isbn:"+isbn,isbn);if(g){found=mergeFound(found,g);sources.push("Google Books")}
@@ -688,7 +713,7 @@ async function lookupISBN(){
 function showUnknownISBNRescue(isbn,r){
  var owned=visible().filter(function(b){return b.owned!==false});
  r.innerHTML='<div class="guardian purple unknown-isbn-rescue">'+
-  '<div class="eyebrow">SHOPPING MODE 2.1 • UNKNOWN ISBN RESCUE</div>'+
+  '<div class="eyebrow">SHOPPING MODE 2.2 • BOOKSHOP LEARNING BRAIN</div>'+
   '<h3>🧠 I don\'t recognize this ISBN yet.</h3>'+
   '<div class="shop-verdict">That does not mean the book is new to you. Help your Bookshop identify the <b>work</b>, and I\'ll compare this ISBN against copies you already own.</div>'+
   '<div class="unknown-rescue-fields"><div class="field"><label>Title</label><input id="rescueTitle" placeholder="Starside"></div><div class="field"><label>Author</label><input id="rescueAuthor" placeholder="Alex Aster"></div></div>'+
@@ -708,7 +733,9 @@ function showUnknownISBNRescue(isbn,r){
   Array.prototype.forEach.call(box.querySelectorAll('.unknown-work-choice'),function(btn){btn.onclick=function(){
    var b=matches[Number(btn.getAttribute('data-i'))];
    var f={title:b.title||title,author:b.author||author,genres:(b.genres||[]).slice(),tags:(b.tags||[]).slice(),series:b.series||'',seriesNo:b.seriesNo||'',cover:'',edition:{isbn:isbn,name:'',format:'',publisher:'',publicationDate:'',pages:'',printing:'',special:[]}};
-   showMatch(f,'You identified the work • ISBN metadata unavailable');
+   box.innerHTML='<div class="learning-confirm"><div class="eyebrow">🧠 TEACH YOUR BOOKSHOP</div><h4>Remember '+esc(isbn)+' as '+esc(b.title||title)+'?</h4><p class="muted">This saves only the ISBN-to-work connection. It does <b>not</b> invent edition details or add another copy to your Library.</p><div class="actions"><button class="primary" id="rememberISBN">🧠 Remember this ISBN</button><button class="pill" id="compareOnce">Compare once</button></div><div class="tiny">Remembered ISBNs are included in backups and Work Intelligence sync.</div></div>';
+   el('#rememberISBN').onclick=function(){rememberISBNForWork(isbn,b);showMatch(f,'Your Bookshop Learning Brain • ISBN remembered')};
+   el('#compareOnce').onclick=function(){showMatch(f,'You identified the work • one-time comparison')};
   }});
  }
 }
@@ -977,7 +1004,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.3",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-3-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.4",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-4-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");

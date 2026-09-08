@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-8-3-unknown-isbn-rescue";
+const CACHE="enchanted-bookshop-v4-8-4-bookshop-learning-brain";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.8.3",
- "./app.js?v=4.8.3",
- "./manifest.json?v=4.8.3",
- "./icon-192.png?v=4.8.3",
+ "./styles.css?v=4.8.4",
+ "./app.js?v=4.8.4",
+ "./manifest.json?v=4.8.4",
+ "./icon-192.png?v=4.8.4",
  "./icon-512.png"
 ];
 

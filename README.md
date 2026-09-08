@@ -1,55 +1,26 @@
-# Enchanted Bookshop V4.8.0 — Shopping Mode 2.0
+# Enchanted Bookshop V4.8.4 — Bookshop Learning Brain
 
-Built from the proven V4.7.14.7 functional mobile/desktop checkpoint.
+Built from the verified V4.8.3 Unknown ISBN Rescue checkpoint.
 
-## Shopping Mode 2.0 foundation
+## What is new
+- Unknown ISBN Rescue can now **remember an ISBN-to-work connection** after you confirm the owned work.
+- A new **Remember this ISBN** step is explicit and safe: it saves the association only; it does not invent edition metadata or add a physical copy.
+- Future scans check the local Bookshop Learning Brain **before public metadata APIs**, so a taught ISBN is recognized immediately even when Google Books/Open Library fail.
+- Remembered ISBNs live inside Work Intelligence, so they are included in the existing JSON backup and existing Supabase Work Intelligence sync.
+- **Compare once** remains available if you do not want to teach the Bookshop permanently.
+- No new Supabase tables or SQL changes are required.
 
-Scanner results now give a clearer bookstore decision:
+## Safety
+- Existing exact-owned ISBN local lookup remains first.
+- Learned ISBN recognition never pretends to know edition-specific format, cover, publisher, printing, or collector features.
+- Auto-sync behavior is unchanged.
+- V4.8.2 custom cover rescue and V4.8.3 different-edition flow are preserved.
 
-### Exact ISBN
-- Red exact-edition warning.
-- Side-by-side "Your copy" vs "In your hand".
-- High-confidence exact ISBN verdict.
-- Keep Browsing action.
-- Work Intelligence preview remains available.
-
-### Same work, different ISBN
-- Gold "Different Edition" result.
-- Side-by-side edition details.
-- High confidence that the ISBN/edition differs.
-- Explicitly DOES NOT claim special/collector features unless saved metadata supports them.
-- Add This Edition action.
-
-### Possible work match
-- Purple caution state when title matches but author metadata is incomplete.
-- Low-confidence wording instead of pretending the work match is certain.
-
-### New book
-- Green new-to-your-bookshop result.
-- Add to Bookshop action.
-- Clearly states that public metadata can still be incomplete.
-
-### Series-gap signal
-When the scanned book maps to a user-confirmed Series Catalog lineup,
-Shopping Mode can flag that the book appears to fill a currently missing
-series volume and shows owned/lineup progress.
-
-## Safety / preserved systems
-- Exact-owned local-first scanner path preserved.
-- Existing Google Books + Open Library metadata flow preserved.
-- Work Intelligence preserved.
-- Series Brain preserved.
-- Supabase sync untouched.
-- No SQL/schema/data-model changes.
-- V4.7.14.7 cache-busting and mobile scanner recovery preserved.
-- Desktop layout preserved.
-
-## First test
-1. Confirm More shows Enchanted Bookshop · V4.8.0.
-2. Scan Promises & Pomegranates.
-3. Confirm red EXACT ISBN result and side-by-side comparison.
-4. Tap Keep Browsing and confirm scanner closes.
-5. Then test a book you do not own if available.
-
-## V4.8.2 — Cover Rescue 2.0
-Adds user-supplied physical-cover photos with compression, preview, explicit confirmation, safe cover-only mutation, and backup/cloud compatibility through the existing book record.
+## Recommended Starside test
+1. Shopping Scanner → enter `9780063479791`.
+2. If public metadata still fails, enter `Starside` / `Alex Aster`.
+3. Choose your owned Deluxe Limited Edition.
+4. Tap **Remember this ISBN**.
+5. Keep browsing / close the result.
+6. Scan `9780063479791` again. It should now skip the rescue form and go directly to **DIFFERENT EDITION**, with metadata source shown as the Bookshop Learning Brain.
+7. Manual Sync Now on phone, then Pull + merge on computer if you want to verify the learned ISBN travels cross-device.
