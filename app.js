@@ -155,6 +155,42 @@ function library(){
  var b=filtered(),names={all:"All",favorites:"⭐ Favorites",tbr:"📖 Unread",read:"✅ Read",spicy:"🌶️ Spicy"};
  return '<div class="eyebrow">The collection</div><h1 class="title">My Library</h1><div class="toolbar">'+Object.keys(names).map(function(k){return'<button class="pill '+(state.filter===k?"active":"")+'" data-filter="'+k+'">'+names[k]+'</button>'}).join("")+'</div><div class="grid">'+(b.map(card).join("")||'<div class="empty">No books match that filter.</div>')+'</div>'
 }
+
+function browseGenres(){
+ var seen={};
+ owned().forEach(function(b){(b.genres||[]).forEach(function(g){if(g)seen[g]=1})});
+ return Object.keys(seen).sort(function(a,b){return a.localeCompare(b)})
+}
+function browseBooks(){
+ var genre=state.browseGenre||"All",filter=state.browseFilter||"all";
+ return owned().filter(function(b){
+  if(genre!=="All"&&(b.genres||[]).indexOf(genre)<0)return false;
+  if(filter==="unread")return b.status!=="read";
+  if(filter==="read")return b.status==="read";
+  if(filter==="favorites")return !!b.favorite;
+  if(filter==="spicy")return (+b.spice||0)>=3;
+  return true
+ })
+}
+function browse(){
+ var genres=["All"].concat(browseGenres());
+ if(!state.browseGenre||genres.indexOf(state.browseGenre)<0)state.browseGenre="All";
+ state.browseFilter=state.browseFilter||"all";
+ var books=browseBooks();
+ var genreChips=genres.map(function(g){return'<button class="pill '+(state.browseGenre===g?"active":"")+'" data-browse-genre="'+esc(g)+'">'+esc(g)+'</button>'}).join("");
+ var filters=[["all","All"],["unread","📖 Unread"],["read","✅ Read"],["favorites","⭐ Favorites"],["spicy","🌶️ Spicy"]]
+  .map(function(x){return'<button class="pill '+(state.browseFilter===x[0]?"active":"")+'" data-browse-filter="'+x[0]+'">'+x[1]+'</button>'}).join("");
+ var stack=books.length?'<div class="magic-stack">'+books.map(function(b,i){
+   var meta=[b.author||"",b.series?(b.series+(b.seriesNo?" • #"+b.seriesNo:"")):""].filter(Boolean).join(" • ");
+   return '<button class="stack-book stack-tone-'+(i%5)+'" data-stack-id="'+esc(b.id)+'" style="--stack-shift:'+((i%4)*8)+'px;--stack-tilt:'+(((i%7)-3)*0.7)+'deg"><span class="stack-title">'+esc(b.title||"Untitled")+'</span><span class="stack-meta">'+esc(meta)+'</span></button>'
+  }).join("")+'</div>':'<div class="empty">No books match this magical stack yet. ✨</div>';
+ return '<div class="eyebrow">The enchanted shelves</div><h1 class="title">Browse by Genre</h1><p class="sub">Choose a genre, then narrow your shelf into a magical stack.</p>'+
+ '<div class="browse-panel"><h3>🌙 Pick a genre</h3><div class="toolbar browse-chips">'+genreChips+'</div></div>'+
+ '<div class="browse-panel"><h3>✨ Filter this stack</h3><div class="toolbar browse-chips">'+filters+'</div></div>'+
+ '<div class="stack-heading"><div><div class="eyebrow">Current stack</div><h2>'+esc(state.browseGenre)+'</h2></div><div class="stack-count">'+books.length+' book'+(books.length===1?"":"s")+'</div></div>'+
+ stack
+}
+
 function catalogedSeriesEntry(entry,books){
  return books.some(function(b){return norm(b.title)===norm(entry.title)||(b.seriesNo&&entry.number&&String(b.seriesNo)===String(entry.number))})
 }
@@ -268,6 +304,7 @@ function render(){
  var c=el("#content");
  if(state.view==="home")c.innerHTML=home();
  else if(state.view==="library")c.innerHTML=library();
+ else if(state.view==="browse")c.innerHTML=browse();
  else if(state.view==="series")c.innerHTML=series();
  else if(state.view==="wishlist")c.innerHTML=shelf("✨ Want to Own",visible().filter(function(b){return b.wantOwn}));
  else if(state.view==="tbr")c.innerHTML=shelf("📖 Want to Read",visible().filter(function(b){return b.status==="want-to-read"}));
@@ -671,7 +708,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.11",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-11-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.12",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-12-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -755,6 +792,11 @@ function wirePage(){
 document.addEventListener("click",function(e){
  var v=e.target.closest("[data-view]");if(v){state.view=v.getAttribute("data-view");state.filter="all";save();render();return}
  var f=e.target.closest("[data-filter]");if(f){state.filter=f.getAttribute("data-filter");render();return}
+
+ var bg=e.target.closest("[data-browse-genre]");if(bg){state.browseGenre=bg.getAttribute("data-browse-genre");save();render();return}
+ var bf=e.target.closest("[data-browse-filter]");if(bf){state.browseFilter=bf.getAttribute("data-browse-filter");save();render();return}
+ var sb=e.target.closest("[data-stack-id]");if(sb){var bk=visible().find(function(x){return x.id===sb.getAttribute("data-stack-id")});if(bk)openBook(bk);return}
+
  var st=e.target.closest("[data-series-toggle]");if(st){toggleSeriesOwned(st.getAttribute("data-series-toggle"),st.getAttribute("data-series-title"));return}
  var sc=e.target.closest("[data-series-scan]");if(sc){catalogSeriesCopy(sc.getAttribute("data-series-scan"),sc.getAttribute("data-series-title"),sc.getAttribute("data-series-no"));return}
  var sf=e.target.closest("[data-series-find]");if(sf){findSeriesLineup(sf.getAttribute("data-series-find"));return}
