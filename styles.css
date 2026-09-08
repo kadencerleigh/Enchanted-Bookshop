@@ -415,3 +415,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .own-cover-confirm img{display:block;width:100%;max-height:210px;object-fit:contain;border-radius:8px;background:rgba(0,0,0,.2)}
 .own-cover-confirm .primary,.own-cover-confirm .pill{margin:4px 6px 0 0}
 @media(max-width:420px){.own-cover-confirm{grid-template-columns:105px 1fr;gap:9px}.own-cover-confirm .primary,.own-cover-confirm .pill{width:100%;margin:5px 0 0}}
+
+/* V4.8.3 — Unknown ISBN Rescue */
+.unknown-rescue-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.unknown-match-heading{margin:18px 0 10px}
+.unknown-work-choice{width:100%;display:flex;align-items:center;gap:12px;text-align:left;padding:10px;margin:8px 0;border:1px solid rgba(218,187,117,.35);border-radius:16px;background:rgba(0,0,0,.16);color:inherit}
+.unknown-work-choice img,.unknown-cover-fallback{width:54px;height:78px;object-fit:cover;border-radius:8px;flex:0 0 54px}
+.unknown-cover-fallback{display:grid;place-items:center;background:rgba(255,255,255,.06);font-size:26px}
+.unknown-work-choice span:last-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.unknown-work-choice small{opacity:.72}
+@media(max-width:620px){.unknown-rescue-fields{grid-template-columns:1fr}}
