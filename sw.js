@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-7-14-7-cache-busting-recovery";
+const CACHE="enchanted-bookshop-v4-8-0-shopping-mode-2";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.7.14.7",
- "./app.js?v=4.7.14.7",
- "./manifest.json?v=4.7.14.7",
- "./icon-192.png?v=4.7.14.7",
+ "./styles.css?v=4.8.0",
+ "./app.js?v=4.8.0",
+ "./manifest.json?v=4.8.0",
+ "./icon-192.png?v=4.8.0",
  "./icon-512.png"
 ];
 
