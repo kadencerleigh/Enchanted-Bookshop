@@ -393,3 +393,16 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
   .shop-cover-img,.shop-cover-fallback{max-width:118px}
   .shop-edition-lines{font-size:10px}
 }
+
+/* V4.8.1 — Collector Rescue */
+.copy-connections textarea{min-height:96px;margin-top:8px}
+.memory-preset{display:flex;align-items:center;gap:8px;text-transform:none!important;margin:4px 0 8px}
+#coverCandidatePanel{width:100%;margin-top:12px}
+.cover-picker{padding:14px;border:1px solid rgba(224,191,119,.22);border-radius:16px;background:rgba(255,255,255,.035)}
+.cover-picker h3{margin:5px 0 4px}
+.cover-candidate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.cover-candidate{appearance:none;text-align:left;padding:9px;border:1px solid rgba(224,191,119,.2);border-radius:13px;background:rgba(0,0,0,.16);color:inherit;cursor:pointer}
+.cover-candidate:hover,.cover-candidate:focus{border-color:rgba(224,191,119,.55);transform:translateY(-1px)}
+.cover-candidate img{display:block;width:100%;max-width:145px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;margin:0 auto 7px}
+.cover-candidate span{display:block;font-size:11px;line-height:1.35}
+@media(max-width:520px){.cover-candidate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

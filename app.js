@@ -64,7 +64,7 @@ function challengeData(){var y=String(yearNow()),a=getChallenges();if(!a[y])a[y]
 function setChallengeGoal(g){var c=challengeData();c.all[c.year].goal=Math.max(0,+g||0);saveChallenges(c.all);render()}
 function uniqText(a){var out=[];([].concat(a||[])).forEach(function(x){x=String(x||"").trim();if(x&&out.indexOf(x)<0)out.push(x)});return out}
 function firstNonEmpty(){for(var i=0;i<arguments.length;i++){var x=arguments[i];if(x!==undefined&&x!==null&&String(x).trim()!=="")return x}return ""}
-function mergeFound(a,b){a=a||{};b=b||{};var ae=a.edition||{},be=b.edition||{};return {title:firstNonEmpty(a.title,b.title),author:firstNonEmpty(a.author,b.author),genres:uniqText([].concat(a.genres||[],b.genres||[])),description:firstNonEmpty(a.description,b.description),cover:firstNonEmpty(a.cover,b.cover),series:firstNonEmpty(a.series,b.series),seriesNo:firstNonEmpty(a.seriesNo,b.seriesNo),workKeys:uniqText([].concat(a.workKeys||[],b.workKeys||[])),edition:{isbn:firstNonEmpty(ae.isbn,be.isbn),format:firstNonEmpty(ae.format,be.format),publisher:firstNonEmpty(ae.publisher,be.publisher),publicationDate:firstNonEmpty(ae.publicationDate,be.publicationDate),pages:firstNonEmpty(ae.pages,be.pages),printing:firstNonEmpty(ae.printing,be.printing),special:uniqText([].concat(ae.special||[],be.special||[]))}}}
+function mergeFound(a,b){a=a||{};b=b||{};var ae=a.edition||{},be=b.edition||{};return {title:firstNonEmpty(a.title,b.title),author:firstNonEmpty(a.author,b.author),genres:uniqText([].concat(a.genres||[],b.genres||[])),description:firstNonEmpty(a.description,b.description),cover:firstNonEmpty(a.cover,b.cover),series:firstNonEmpty(a.series,b.series),seriesNo:firstNonEmpty(a.seriesNo,b.seriesNo),workKeys:uniqText([].concat(a.workKeys||[],b.workKeys||[])),edition:{isbn:firstNonEmpty(ae.isbn,be.isbn),name:firstNonEmpty(ae.name,be.name),format:firstNonEmpty(ae.format,be.format),publisher:firstNonEmpty(ae.publisher,be.publisher),publicationDate:firstNonEmpty(ae.publicationDate,be.publicationDate),pages:firstNonEmpty(ae.pages,be.pages),printing:firstNonEmpty(ae.printing,be.printing),special:uniqText([].concat(ae.special||[],be.special||[]))}}}
 function mergeWorkSignals(base,extra){base=base||{};extra=extra||{};base.genres=uniqText([].concat(base.genres||[],extra.genres||[]));base.workKeys=uniqText([].concat(base.workKeys||[],extra.workKeys||[]));if(extra.description&&String(extra.description).length>String(base.description||"").length)base.description=extra.description;if(!base.author&&extra.author)base.author=extra.author;if(!base.cover&&extra.cover)base.cover=extra.cover;if(!base.series&&extra.series){base.series=extra.series;base.seriesSuggested=!!extra.seriesSuggested;base.seriesConfidence=extra.seriesConfidence||"";base.seriesSource=extra.seriesSource||""}if(!base.seriesNo&&extra.seriesNo)base.seriesNo=extra.seriesNo;return base}
 function knowledgeKey(title,author){return norm(title)+"|"+norm(author)}
 var BOOK_KNOWLEDGE={
@@ -282,7 +282,7 @@ function toggleSeriesOwned(name,title){
  entry.ownedUncataloged=!entry.ownedUncataloged;cat.updatedAt=now();saveSeries();render();autoSyncSeriesMaybe()
 }
 function catalogSeriesCopy(name,title,no){
- state.view="library";render();openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""});
+ state.view="library";render();openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""});
 }
 function openMissing(name,title,no){catalogSeriesCopy(name,title,no)}
 function shelf(title,a){return'<div class="eyebrow">Your shelves</div><h1 class="title">'+title+'</h1><div class="grid">'+(a.map(card).join("")||'<div class="empty">Nothing here yet. ✨</div>')+'</div>'}
@@ -319,6 +319,12 @@ var GENRES=["Fantasy","Romantasy","Romance","Dark Romance","Mystery","Thriller",
 function genreField(selected){selected=selected||[];var known=GENRES.slice();selected.forEach(function(g){if(g&&known.indexOf(g)<0)known.push(g)});return '<div class="field full genre-picker"><label>Genres</label><div class="genre-options">'+known.map(function(g){return '<label class="genre-chip"><input type="checkbox" name="genres" value="'+esc(g)+'" '+(selected.indexOf(g)>=0?"checked":"")+'> <span>'+esc(g)+'</span></label>'}).join("")+'</div><label class="custom-genre-label">Other / Custom Genre</label><input name="customGenre" placeholder="Add another genre (optional)"></div>';}
 function isExtraType(type){var t=norm(type);return t.indexOf("novella")>=0||t.indexOf("prequel")>=0||t.indexOf("companion")>=0||t.indexOf("bonus")>=0||t.indexOf("anthology")>=0||t.indexOf("extra")>=0;}
 function checkbox(name,label,checked){return'<div class="field"><label style="text-transform:none"><input type="checkbox" name="'+name+'" '+(checked?"checked":"")+'> '+label+'</label></div>'}
+function copyConnectionsField(items){
+ items=uniqText(items||[]);
+ var birthday=items.indexOf("Published on my birthday")>=0;
+ var custom=items.filter(function(x){return x!=="Published on my birthday"});
+ return '<div class="field full copy-connections"><label>✨ Bookish Connections / Copy Memories</label><label class="memory-preset"><input type="checkbox" name="connectionBirthday" '+(birthday?"checked":"")+'> 🎂 Published on my birthday</label><textarea name="copyMemories" placeholder="One memory per line — bought on a trip, gift from someone special, found at a favorite bookstore...">'+esc(custom.join("\n"))+'</textarea><div class="tiny muted">These belong to this physical copy, so duplicate editions can have different stories.</div></div>'
+}
 async function enrichManualBookCoverOnly(book){
  try{
   if(!book||book.cover)return book;
@@ -332,6 +338,75 @@ async function enrichManualBookCoverOnly(book){
   }
  }catch(e){console.warn("Manual-entry cover enrichment skipped",e)}
  return book
+}
+
+
+function normalizeCoverURL(url){return String(url||"").replace(/^http:/,"https:")}
+async function collectEditorCoverCandidates(book){
+ var isbn=cleanISBN(book&&book.edition&&book.edition.isbn||""),title=String(book&&book.title||"").trim(),author=String(book&&book.author||"").trim(),all=[];
+ function add(url,source,exact,label){
+  url=normalizeCoverURL(url);if(!url||all.some(function(x){return x.url===url}))return;
+  all.push({url:url,source:source||"Public metadata",exact:!!exact,label:label||(exact?"Exact ISBN candidate":"Possible work cover")})
+ }
+ // Direct Open Library ISBN image endpoint. ?default=false prevents the generic placeholder.
+ if(isbn)add("https://covers.openlibrary.org/b/isbn/"+encodeURIComponent(isbn)+"-L.jpg?default=false","Open Library ISBN",true,"Exact ISBN")
+ try{
+  var queries=[];if(isbn){queries.push("isbn:"+isbn);queries.push(isbn)}
+  for(var qi=0;qi<queries.length;qi++){
+   var gr=await cachedFetchJSON("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(queries[qi])+"&maxResults=20");
+   ((gr.ok&&gr.data&&gr.data.items)||[]).forEach(function(it){
+    var v=it.volumeInfo||{},ids=v.industryIdentifiers||[],exact=isbn&&ids.some(function(z){return cleanISBN(z.identifier)===isbn});
+    var u=v.imageLinks&&(v.imageLinks.extraLarge||v.imageLinks.large||v.imageLinks.medium||v.imageLinks.small||v.imageLinks.thumbnail||v.imageLinks.smallThumbnail);
+    if(u)add(u,"Google Books"+(exact?" exact ISBN":""),exact,exact?"Exact ISBN":"Google Books edition")
+   })
+  }
+ }catch(e){console.warn("Google cover candidates skipped",e)}
+ try{
+  if(title){
+   var wr=await googleWorkItems(title,author);
+   ((wr.ok&&wr.items)||[]).forEach(function(it){
+    var v=it.volumeInfo||{},va=(v.authors||[]).join(", ");
+    if(similarity(title,v.title||"")<6||(author&&similarity(author,va)<4))return;
+    var ids=v.industryIdentifiers||[],exact=isbn&&ids.some(function(z){return cleanISBN(z.identifier)===isbn});
+    var u=v.imageLinks&&(v.imageLinks.extraLarge||v.imageLinks.large||v.imageLinks.medium||v.imageLinks.small||v.imageLinks.thumbnail||v.imageLinks.smallThumbnail);
+    if(u)add(u,"Google Books title + author",exact,exact?"Exact ISBN":"Same-work candidate")
+   })
+  }
+ }catch(e){console.warn("Google work cover candidates skipped",e)}
+ try{
+  if(title){
+   var qs="title="+encodeURIComponent(title)+(author?"&author="+encodeURIComponent(author):"")+"&limit=20&fields=title,author_name,cover_i,isbn,edition_key";
+   var ol=await cachedFetchJSON("https://openlibrary.org/search.json?"+qs);
+   ((ol.ok&&ol.data&&ol.data.docs)||[]).forEach(function(d){
+    var da=(d.author_name||[]).join(", ");if(similarity(title,d.title||"")<6||(author&&similarity(author,da)<4))return;
+    var exact=isbn&&([].concat(d.isbn||[])).some(function(x){return cleanISBN(x)===isbn});
+    if(d.cover_i)add("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false","Open Library title + author",exact,exact?"Exact ISBN":"Same-work candidate")
+   })
+  }
+ }catch(e){console.warn("Open Library cover candidates skipped",e)}
+ // Validate candidates before showing them. Keep the list intentionally small on mobile.
+ var tested=await Promise.all(all.slice(0,12).map(async function(c){c.ok=await imageLoads(c.url);return c}));
+ return tested.filter(function(c){return c.ok}).slice(0,8)
+}
+function renderCoverCandidatePicker(book,candidates){
+ var panel=el("#coverCandidatePanel");if(!panel)return;
+ if(!candidates.length){panel.innerHTML='<div class="guardian purple"><h3>🕯️ No usable cover candidates yet</h3><div class="muted">Nothing was changed. Your saved book details are safe.</div></div>';return}
+ panel.innerHTML='<div class="cover-picker"><div class="eyebrow">✨ Collector Rescue</div><h3>Which cover matches your copy?</h3><p class="tiny muted">Exact-ISBN matches are labeled. Same-work covers are only suggestions — you choose before anything changes.</p><div class="cover-candidate-grid">'+candidates.map(function(c,i){return '<button type="button" class="cover-candidate" data-cover-i="'+i+'"><img src="'+esc(c.url)+'" alt="Cover candidate"><span><b>'+esc(c.label)+'</b><br>'+esc(c.source)+'</span></button>'}).join("")+'</div><button type="button" class="pill" id="noneCoverMatch">None match</button></div>';
+ panel.querySelectorAll("[data-cover-i]").forEach(function(btn){btn.onclick=function(){
+  var c=candidates[+btn.getAttribute("data-cover-i")];if(!c)return;
+  if(!c.exact&&!confirm("This looks like the same work, but the source does not confirm your exact ISBN. Use this cover for your copy?"))return;
+  var before=JSON.parse(JSON.stringify(book));
+  book.cover=c.url;book.coverSource=(c.exact?"Confirmed candidate: ":"User-confirmed work candidate: ")+c.source;book.updatedAt=now();
+  function stripCover(x){var y=JSON.parse(JSON.stringify(x));delete y.cover;delete y.coverSource;delete y.updatedAt;return y}
+  if(JSON.stringify(stripCover(before))!==JSON.stringify(stripCover(book))){Object.keys(book).forEach(function(k){delete book[k]});Object.assign(book,before);alert("Cover change was rolled back because another field changed unexpectedly.");return}
+  save();render();panel.innerHTML='<div class="guardian green"><h3>✅ Cover saved</h3><div class="muted">Only the cover fields changed. '+esc(c.source)+'</div></div>'
+ }});
+ var none=el("#noneCoverMatch");if(none)none.onclick=function(){panel.innerHTML='<div class="guardian purple"><h3>🕯️ No cover selected</h3><div class="muted">Nothing was changed.</div></div>'}
+}
+async function showCoverCandidatesFromEditor(book,button){
+ var panel=el("#coverCandidatePanel");if(panel)panel.innerHTML='<div class="syncstatus">✨ Searching exact ISBN + title/author cover candidates...</div>';
+ var old=button&&button.textContent;if(button){button.disabled=true;button.textContent="✨ Searching..."}
+ try{var cs=await collectEditorCoverCandidates(book);renderCoverCandidatePicker(book,cs)}catch(e){console.warn("Cover candidate search failed",e);if(panel)panel.innerHTML='<div class="guardian red"><h3>Cover search failed safely</h3><div class="muted">Nothing was changed.</div></div>'}finally{if(button){button.disabled=false;button.textContent=old||"✨ Find Missing Cover"}}
 }
 
 
@@ -372,7 +447,10 @@ async function repairMissingCoverFromEditor(book,button){
    render();
    alert("Cover found and saved! Only the cover fields were updated.");
   }else{
-   alert("No usable cover was found for this ISBN yet. Nothing was changed.");
+   // Restore the saved record before showing suggestions. Candidate search must never leave a failed refresh mutation behind.
+   Object.keys(book).forEach(function(k){delete book[k]});
+   Object.assign(book,before);
+   await showCoverCandidatesFromEditor(book,button);
   }
  }catch(e){
   console.warn("Missing-cover repair failed",e);
@@ -385,12 +463,12 @@ async function repairMissingCoverFromEditor(book,button){
 }
 
 function openBook(b){
- b=b||{id:"",workId:"",title:"",author:"",genres:[],tags:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""};var e=b.edition||{};
+ b=b||{id:"",workId:"",title:"",author:"",genres:[],tags:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""};var e=b.edition||{};
  el("#modalBody").innerHTML='<div class="eyebrow">'+(b.id?"Edit copy":"Add to collection")+'</div><h1 class="title">'+(b.id?"Edit Book":"A New Book")+'</h1><form id="bookForm"><div class="form">'+
  field("Title","title",b.title,true)+field("Author","author",b.author)+genreField(b.genres||[])+field("Tropes / Tags","tags",(b.tags||[]).join(", "))+(b.intelligence?'<div class="field full"><div class="guardian purple"><div class="eyebrow">✨ Book Intelligence</div><div class="muted">Genre: <b>'+esc((b.genres||[]).join(", ")||"Uncertain")+'</b><br>Series: <b>'+esc((b.series||"")+(b.seriesNo?" #"+b.seriesNo:"")||"Uncertain")+'</b>'+(b.seriesSuggested?' <span class="tiny">• possible — confirm below</span>':'')+'<br>Spice: <b>'+((b.spiceConfidence||"unknown")=="unknown"?"Unknown":esc(String(b.spice||0))+"/5")+'</b> • '+esc(b.spiceConfidence||"unknown")+(b.seriesDiagnostics?'<br>Series search: '+esc(String(b.seriesDiagnostics.matchedEditions||0))+' matching editions • '+esc(String(b.seriesDiagnostics.claims||0))+' usable series claims'+(b.seriesDiagnostics.openLibraryClaims?' • Open Library '+esc(String(b.seriesDiagnostics.openLibraryClaims))+' claim(s)':'')+(b.seriesDiagnostics.googleClaims?' • Google '+esc(String(b.seriesDiagnostics.googleClaims))+' claim(s)':'')+(b.seriesDiagnostics.cacheHits?' • cache hits '+esc(String(b.seriesDiagnostics.cacheHits)):'')+(b.seriesDiagnostics.rateLimited?' • Google rate-limited':''):'')+(b.workBrain?'<br>Work Brain: <b>Using your confirmed work-level knowledge</b>':'')+'<br>Source: '+esc(b.intelligenceSource||"Public metadata")+'</div></div></div>':'')+field("Series","series",b.series)+field("Series number","seriesNo",b.seriesNo)+
  selectField("Reading status","status",["want-to-read","currently-reading","read","dnf","rereading"],b.status)+selectField("Rating","rating",["0","1","2","3","4","5"],String(b.rating||0))+selectField((b.spiceSuggested&&!b.spiceConfirmed?"Suggested spice":"Spice"),"spice",["0","1","2","3","4","5"],String(b.spice||0))+field("Finished date","finishedDate",b.finishedDate||"")+checkbox("readDateUnknown","🕰️ Read before tracking / date unknown",!!b.readDateUnknown)+
- field("ISBN","isbn",e.isbn)+selectField("Format","format",["Paperback","Hardcover","Box Set","Ebook","Audiobook","Other"],e.format||"Paperback")+field("Publisher","publisher",e.publisher)+field("Publication date","publicationDate",e.publicationDate)+field("Page count","pages",e.pages)+field("Printing","printing",e.printing)+field("Special features","special",(e.special||[]).join(", "),"",true)+
- '<div class="field full"><label>Notes</label><textarea name="notes">'+esc(b.notes||"")+'</textarea></div>'+checkbox("owned","I own this physical copy",b.owned)+checkbox("wantOwn","I want to own this",b.wantOwn)+checkbox("favorite","Favorite",b.favorite)+'</div><div class="actions">'+(b.id?'<button type="button" class="danger" id="deleteBtn">Delete</button>':'')+'<button class="primary" type="submit">'+(b.id?"Save changes":"Add to bookshop")+'</button><button type="button" class="pill" id="repairMissingCover" style="display:none">✨ Find Missing Cover</button></div></form>';
+ field("ISBN","isbn",e.isbn)+field("Edition","editionName",e.name||"")+selectField("Format","format",["Paperback","Hardcover","Box Set","Ebook","Audiobook","Other"],e.format||"Paperback")+field("Publisher","publisher",e.publisher)+field("Publication date","publicationDate",e.publicationDate)+field("Page count","pages",e.pages)+field("Printing","printing",e.printing)+field("Special features","special",(e.special||[]).join(", "),"",true)+
+ copyConnectionsField(b.copyConnections||[])+'<div class="field full"><label>Notes</label><textarea name="notes">'+esc(b.notes||"")+'</textarea></div>'+checkbox("owned","I own this physical copy",b.owned)+checkbox("wantOwn","I want to own this",b.wantOwn)+checkbox("favorite","Favorite",b.favorite)+'</div><div class="actions">'+(b.id?'<button type="button" class="danger" id="deleteBtn">Delete</button>':'')+'<button class="primary" type="submit">'+(b.id?"Save changes":"Add to bookshop")+'</button><button type="button" class="pill" id="repairMissingCover" style="display:none">✨ Find Missing Cover</button></div><div id="coverCandidatePanel"></div></form>';
  el("#modal").classList.remove("hidden");
  
 var repairBtn=el("#repairMissingCover");
@@ -398,7 +476,7 @@ if(repairBtn){
  repairBtn.style.display=(b.id&&cleanISBN(b.edition&&b.edition.isbn||""))?"inline-flex":"none";
  repairBtn.onclick=async function(){
   // Pull the currently typed ISBN into the in-memory editor copy before repair.
-  var isbnField=el("#bookForm")&&el("#bookForm").elements["isbn"];
+  var form=el("#bookForm"),isbnField=form&&form.elements["isbn"];
   if(isbnField){
    b.edition=b.edition||{};
    b.edition.isbn=cleanISBN(isbnField.value)
@@ -407,12 +485,12 @@ if(repairBtn){
  }
 }
 
-el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),notes:f.get("notes"),edition:{isbn:f.get("isbn"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
+el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:uniqText([].concat(f.has("connectionBirthday")?["Published on my birthday"]:[],String(f.get("copyMemories")||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean))),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
  if(b.id)el("#deleteBtn").onclick=function(){if(confirm("Remove this copy from your bookshop?")){var x=state.books.find(function(x){return x.id===b.id});x.deleted=true;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.0 • Shopping Mode 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.1 • Collector Rescue</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -423,18 +501,18 @@ async function startScanner(){
 async function scanFrame(){if(busy||!detector||!el("#scanVideo"))return;var v=el("#scanVideo");if(v.readyState<2)return;busy=true;try{var cs=await detector.detect(v);for(var i=0;i<cs.length;i++){var raw=cleanISBN(cs[i].rawValue);if((raw.length===13&&(raw.indexOf("978")===0||raw.indexOf("979")===0))||raw.length===10){el("#isbnInput").value=raw;stopScanner();if(navigator.vibrate)navigator.vibrate(100);lookupISBN();break}}}catch(e){}busy=false}
 function stopScanner(){if(scannerTimer){clearInterval(scannerTimer);scannerTimer=null}if(scannerStream){scannerStream.getTracks().forEach(function(t){t.stop()});scannerStream=null}detector=null;busy=false;var b=el("#cameraBox");if(b)b.innerHTML='<div class="muted">📷 Camera is off.</div>';if(el("#startCam"))el("#startCam").classList.remove("hidden");if(el("#stopCam"))el("#stopCam").classList.add("hidden")}
 async function googleLookup(query,isbn){
- var url="https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(query)+"&maxResults=10",res=await cachedFetchJSON(url);if(!res.ok)return null;var j=res.data||{},items=j.items||[];if(!items.length)return null;var best=items[0],wanted=cleanISBN(isbn||"");if(wanted){for(var i=0;i<items.length;i++){var ids=(items[i].volumeInfo&&items[i].volumeInfo.industryIdentifiers)||[];if(ids.some(function(z){return cleanISBN(z.identifier)===wanted})){best=items[i];break}}}var v=best.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");return{title:v.title||"",author:(v.authors||[]).join(", "),genres:v.categories||[],description:v.description||"",cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",series:ser.series,seriesNo:ser.seriesNo,edition:{isbn:wanted,format:v.printType==="BOOK"?"":"",publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",printing:"",special:[]}}
+ var url="https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(query)+"&maxResults=10",res=await cachedFetchJSON(url);if(!res.ok)return null;var j=res.data||{},items=j.items||[];if(!items.length)return null;var best=items[0],wanted=cleanISBN(isbn||"");if(wanted){for(var i=0;i<items.length;i++){var ids=(items[i].volumeInfo&&items[i].volumeInfo.industryIdentifiers)||[];if(ids.some(function(z){return cleanISBN(z.identifier)===wanted})){best=items[i];break}}}var v=best.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");return{title:v.title||"",author:(v.authors||[]).join(", "),genres:v.categories||[],description:v.description||"",cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",series:ser.series,seriesNo:ser.seriesNo,edition:{isbn:wanted,name:"",format:v.printType==="BOOK"?"":"",publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",printing:"",special:[]}}
 }
 async function openLibraryISBN(isbn){
- var res=await cachedFetchJSON("https://openlibrary.org/isbn/"+isbn+".json");if(!res.ok)return null;var q=res.data||{},authors=[];if(q.authors&&q.authors.length){for(var i=0;i<q.authors.length;i++){var ar=await cachedFetchJSON("https://openlibrary.org"+q.authors[i].key+".json");if(ar.ok&&ar.data&&ar.data.name)authors.push(ar.data.name)}}var subjects=q.subjects||[],desc=q.description&&((typeof q.description==="string")?q.description:q.description.value)||"",ser=inferSeries(q.title||"",desc),olSeries=Array.isArray(q.series)?String(q.series[0]||""):String(q.series||"");if(olSeries){var sm=olSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm&&cleanSeriesName(sm[1])){ser.series=cleanSeriesName(sm[1]);if(sm[2])ser.seriesNo=sm[2]}}return{title:q.title||"",author:authors.join(", "),genres:subjects,description:desc,cover:(q.covers&&q.covers.length)?("https://covers.openlibrary.org/b/id/"+q.covers[0]+"-L.jpg"):"",series:ser.series,seriesNo:ser.seriesNo,workKeys:uniqText((q.works||[]).map(function(w){return w.key||""})),edition:{isbn:isbn,format:q.physical_format||"",publisher:(q.publishers||[]).join(", "),publicationDate:q.publish_date||"",pages:q.number_of_pages||"",printing:"",special:[]}}
+ var res=await cachedFetchJSON("https://openlibrary.org/isbn/"+isbn+".json");if(!res.ok)return null;var q=res.data||{},authors=[];if(q.authors&&q.authors.length){for(var i=0;i<q.authors.length;i++){var ar=await cachedFetchJSON("https://openlibrary.org"+q.authors[i].key+".json");if(ar.ok&&ar.data&&ar.data.name)authors.push(ar.data.name)}}var subjects=q.subjects||[],desc=q.description&&((typeof q.description==="string")?q.description:q.description.value)||"",ser=inferSeries(q.title||"",desc),olSeries=Array.isArray(q.series)?String(q.series[0]||""):String(q.series||"");if(olSeries){var sm=olSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm&&cleanSeriesName(sm[1])){ser.series=cleanSeriesName(sm[1]);if(sm[2])ser.seriesNo=sm[2]}}return{title:q.title||"",author:authors.join(", "),genres:subjects,description:desc,cover:(q.covers&&q.covers.length)?("https://covers.openlibrary.org/b/id/"+q.covers[0]+"-L.jpg"):"",series:ser.series,seriesNo:ser.seriesNo,workKeys:uniqText((q.works||[]).map(function(w){return w.key||""})),edition:{isbn:isbn,name:"",format:q.physical_format||"",publisher:(q.publishers||[]).join(", "),publicationDate:q.publish_date||"",pages:q.number_of_pages||"",printing:"",special:[]}}
 }
 function similarity(a,b){a=norm(a);b=norm(b);if(!a||!b)return 0;if(a===b)return 10;if(a.indexOf(b)>=0||b.indexOf(a)>=0)return 7;var aw=a.split(/\s+/),bw=b.split(/\s+/),hit=aw.filter(function(x){return bw.indexOf(x)>=0}).length;return hit/Math.max(aw.length,bw.length)*6}
 async function googleWorkItems(title,author){var q='intitle:"'+title+'"'+(author?' inauthor:"'+author+'"':'');var url="https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(q)+"&maxResults=20",res=await cachedFetchJSON(url);return{ok:res.ok,status:res.status,items:(res.data&&res.data.items)||[],fromCache:!!res.fromCache}}
 async function googleWorkSearch(title,author,isbn){
- var rr=await googleWorkItems(title,author);if(!rr.ok)return null;var items=rr.items||[],best=null,bestScore=-1,claims={};items.forEach(function(it){var v=it.volumeInfo||{},va=(v.authors||[]).join(", "),ts=similarity(title,v.title||""),as=author?similarity(author,va):6,score=ts+as+(v.description?3:0)+(v.categories&&v.categories.length?2:0);if(ts>=6&&as>=4){var blob=[v.title||"",v.subtitle||"",v.description||"",(v.categories||[]).join(" ")].join(" ").replace(/<[^>]+>/g," "),ser=inferSeries(v.title||"",blob);if(ser.series)addSeriesClaim(claims,ser.series,ser.seriesNo,7+(ts>=9?2:0)+(as>=7?1:0),"Google Books work editions",title,author);extractSeriesClaimsFromText(blob,claims,7,"Google Books work editions",title,author)}var direct=inferSeries(v.title||"",v.description||"");if(direct.series)score+=3;if(score>bestScore){bestScore=score;best=v}});if(!best)return null;var ser=inferSeries(best.title||"",best.description||""),bridge=bestSeriesClaim(claims);if(bridge){ser.series=bridge.series;ser.seriesNo=bridge.seriesNo||ser.seriesNo||""}return{title:best.title||title||"",author:(best.authors||[]).join(", "),genres:best.categories||[],description:best.description||"",cover:(best.imageLinks&&(best.imageLinks.thumbnail||best.imageLinks.smallThumbnail))||"",series:ser.series,seriesNo:ser.seriesNo,seriesSuggested:!!bridge,seriesConfidence:bridge?(bridge.confidence||"possible"):"",seriesSource:bridge?(bridge.source||"Google Books work editions"):"",edition:{isbn:isbn,format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}
+ var rr=await googleWorkItems(title,author);if(!rr.ok)return null;var items=rr.items||[],best=null,bestScore=-1,claims={};items.forEach(function(it){var v=it.volumeInfo||{},va=(v.authors||[]).join(", "),ts=similarity(title,v.title||""),as=author?similarity(author,va):6,score=ts+as+(v.description?3:0)+(v.categories&&v.categories.length?2:0);if(ts>=6&&as>=4){var blob=[v.title||"",v.subtitle||"",v.description||"",(v.categories||[]).join(" ")].join(" ").replace(/<[^>]+>/g," "),ser=inferSeries(v.title||"",blob);if(ser.series)addSeriesClaim(claims,ser.series,ser.seriesNo,7+(ts>=9?2:0)+(as>=7?1:0),"Google Books work editions",title,author);extractSeriesClaimsFromText(blob,claims,7,"Google Books work editions",title,author)}var direct=inferSeries(v.title||"",v.description||"");if(direct.series)score+=3;if(score>bestScore){bestScore=score;best=v}});if(!best)return null;var ser=inferSeries(best.title||"",best.description||""),bridge=bestSeriesClaim(claims);if(bridge){ser.series=bridge.series;ser.seriesNo=bridge.seriesNo||ser.seriesNo||""}return{title:best.title||title||"",author:(best.authors||[]).join(", "),genres:best.categories||[],description:best.description||"",cover:(best.imageLinks&&(best.imageLinks.thumbnail||best.imageLinks.smallThumbnail))||"",series:ser.series,seriesNo:ser.seriesNo,seriesSuggested:!!bridge,seriesConfidence:bridge?(bridge.confidence||"possible"):"",seriesSource:bridge?(bridge.source||"Google Books work editions"):"",edition:{isbn:isbn,name:"",format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}
 }
 async function openLibraryWorkSearch(title,author,isbn){
- var qs="title="+encodeURIComponent(title||"")+(author?"&author="+encodeURIComponent(author):"")+"&limit=12&fields=title,author_name,subject,first_publish_year,cover_i,key,series",res=await cachedFetchJSON("https://openlibrary.org/search.json?"+qs);if(!res.ok)return null;var docs=(res.data&&res.data.docs)||[],d=null,best=-1;docs.forEach(function(x){var sc=similarity(title,x.title||"")+similarity(author,(x.author_name||[]).join(" "))+(x.subject&&x.subject.length?2:0);if(sc>best){best=sc;d=x}});if(!d)return null;var desc="";if(d.key&&/^\/works\//.test(d.key)){var wr=await cachedFetchJSON("https://openlibrary.org"+d.key+".json");if(wr.ok){var w=wr.data||{};desc=w.description&&((typeof w.description==="string")?w.description:w.description.value)||""}}var ser=inferSeries(d.title||title,desc),ds=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||"");if(ds){var sm=ds.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm&&cleanSeriesName(sm[1])){ser.series=cleanSeriesName(sm[1]);if(sm[2])ser.seriesNo=sm[2]}}return{title:d.title||title||"",author:(d.author_name||[]).join(", "),genres:d.subject||[],description:desc,cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg"):"",series:ser.series,seriesNo:ser.seriesNo,workKeys:d.key?[d.key]:[],edition:{isbn:isbn,format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}
+ var qs="title="+encodeURIComponent(title||"")+(author?"&author="+encodeURIComponent(author):"")+"&limit=12&fields=title,author_name,subject,first_publish_year,cover_i,key,series",res=await cachedFetchJSON("https://openlibrary.org/search.json?"+qs);if(!res.ok)return null;var docs=(res.data&&res.data.docs)||[],d=null,best=-1;docs.forEach(function(x){var sc=similarity(title,x.title||"")+similarity(author,(x.author_name||[]).join(" "))+(x.subject&&x.subject.length?2:0);if(sc>best){best=sc;d=x}});if(!d)return null;var desc="";if(d.key&&/^\/works\//.test(d.key)){var wr=await cachedFetchJSON("https://openlibrary.org"+d.key+".json");if(wr.ok){var w=wr.data||{};desc=w.description&&((typeof w.description==="string")?w.description:w.description.value)||""}}var ser=inferSeries(d.title||title,desc),ds=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||"");if(ds){var sm=ds.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm&&cleanSeriesName(sm[1])){ser.series=cleanSeriesName(sm[1]);if(sm[2])ser.seriesNo=sm[2]}}return{title:d.title||title||"",author:(d.author_name||[]).join(", "),genres:d.subject||[],description:desc,cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg"):"",series:ser.series,seriesNo:ser.seriesNo,workKeys:d.key?[d.key]:[],edition:{isbn:isbn,name:"",format:"",publisher:"",publicationDate:"",pages:"",printing:"",special:[]}}
 }
 
 function validSeriesClaim(series,title,author){
@@ -553,7 +631,7 @@ async function lookupISBN(){
  var g=await googleLookup("isbn:"+isbn,isbn);if(g){found=mergeFound(found,g);sources.push("Google Books")}
  var o=await openLibraryISBN(isbn);if(o){found=mergeFound(found,o);sources.push("Open Library")}
  if(found)found=await enrichBook(found,isbn);
- if(!found||!found.title){r.innerHTML='<div class="guardian purple"><h3>🟣 Could not identify automatically</h3><div class="actions"><button class="primary" id="manualAdd">Add manually</button></div></div>';el("#manualAdd").onclick=function(){openBook({id:"",workId:"",title:"",author:"",genres:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:isbn,format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""})};return}
+ if(!found||!found.title){r.innerHTML='<div class="guardian purple"><h3>🟣 Could not identify automatically</h3><div class="actions"><button class="primary" id="manualAdd">Add manually</button></div></div>';el("#manualAdd").onclick=function(){openBook({id:"",workId:"",title:"",author:"",genres:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:isbn,name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""})};return}
  showMatch(found,uniqText(sources).join(" + ")||"Book Intelligence Brain")
 }
 
@@ -702,9 +780,11 @@ function saveRecoveredCover(book,url){
 
 function shoppingEditionLines(x){
  var e=(x&&x.edition)||{},lines=[];
+ if(e.name)lines.push("<b>Edition:</b> "+esc(e.name));
  if(e.format)lines.push("<b>Format:</b> "+esc(e.format));
  if(e.publisher)lines.push("<b>Publisher:</b> "+esc(e.publisher));
  if(e.publicationDate)lines.push("<b>Published:</b> "+esc(e.publicationDate));
+ if(e.printing)lines.push("<b>Printing:</b> "+esc(e.printing));
  if(e.isbn)lines.push("<b>ISBN:</b> "+esc(cleanISBN(e.isbn)));
  if(Array.isArray(e.special)&&e.special.length)lines.push("<b>Saved edition features:</b> "+e.special.map(esc).join(" • "));
  return lines.join("<br>")||"Edition details are limited."
@@ -819,7 +899,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.0",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-0-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.1",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-1-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
