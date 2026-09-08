@@ -267,3 +267,27 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
     padding-bottom:0!important;
   }
 }
+
+
+/* V4.7.14.4 — Mobile Scanner Polish */
+@media(max-width:820px){
+  /* The scanner uses the shared #modal/.modalcard shell. Keep that entire
+     shell above the sticky search bar, even after the page has scrolled. */
+  #modal{
+    z-index:2000!important;
+    position:fixed!important;
+    inset:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+  }
+  #modal .modalcard{
+    position:relative!important;
+    z-index:2001!important;
+    max-height:none!important;
+  }
+  #modal #closeModal{
+    position:sticky!important;
+    top:8px!important;
+    z-index:2010!important;
+  }
+}
