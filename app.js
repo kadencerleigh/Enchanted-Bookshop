@@ -708,7 +708,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.14.1",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-14-1-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.14.2",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-14-2-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -811,12 +811,14 @@ render();
 })();
 
 (function setupMobileShell(){
- var scan=document.getElementById("mobileScanBtn"),more=document.getElementById("mobileMoreBtn"),sheet=document.getElementById("mobileMore");
+ var scan=document.getElementById("mobileScanBtn"),more=document.getElementById("mobileMoreBtn"),sheet=document.getElementById("mobileMore"),mobileNav=document.getElementById("mobileNav");
  function closeMore(){if(sheet)sheet.classList.add("hidden")}
+ function goTop(){setTimeout(function(){window.scrollTo({top:0,left:0,behavior:"auto"})},0)}
  if(scan)scan.addEventListener("click",function(){var real=document.getElementById("scanBtn");if(real)real.click()});
  if(more)more.addEventListener("click",function(){if(sheet)sheet.classList.remove("hidden")});
  var close=document.getElementById("mobileMoreClose"),shade=document.getElementById("mobileMoreShade");
  if(close)close.addEventListener("click",closeMore);
  if(shade)shade.addEventListener("click",closeMore);
- if(sheet)sheet.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",closeMore)});
+ if(mobileNav)mobileNav.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",goTop)});
+ if(sheet)sheet.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){closeMore();goTop()})});
 })();
