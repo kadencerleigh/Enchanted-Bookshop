@@ -1,18 +1,23 @@
-Enchanted Bookshop V4.9 — Bookshop Brain 2.0
+Enchanted Bookshop V4.9 — The Collector's Library
 
-Built from the verified V4.8.4 golden checkpoint.
+Built directly from V4.8.4 Bookshop Learning Brain.
 
 NEW
-- “What My Bookshop Knows” panel inside saved book records.
-- New Bookshop Brain / Brain Vault page on desktop and mobile More.
-- Provenance labels distinguish cataloged-copy facts from learned/confirmed work facts.
-- Inspect learned alternate ISBNs per work.
-- Forget an individual learned ISBN without deleting the physical book.
-- Correct/refresh Work Brain facts from the current cataloged copy.
-- Forget learned work facts without deleting the physical copy.
-- Work Intelligence forgets now use sync-safe tombstones so a manual sync can carry deletions to other devices.
-- Existing learned ISBNs are preserved when work knowledge is refreshed from a cataloged copy.
+- Library book cards and magical stacks now open a Collector Library detail view.
+- Work → Edition → Copy presentation is derived from existing records; no migration.
+- Same title + author records are grouped as one Work.
+- Editions group by exact ISBN first, then edition metadata when ISBN is absent.
+- Each physical record remains an individual Copy.
+- Work panel shows series, genres, reading status, rating, spice, and collection counts.
+- Edition panels show edition name, format, publisher, publication date, ISBN, and special features.
+- Copy panels show printing, custom cover, cover source, and Bookish Connections.
+- Edit Copy preserves the existing editor.
+- Add Another Copy clones edition/work facts but clears copy memories/notes.
+- Add Another Edition starts a new edition for the same work without altering the existing copy.
 
-NO NEW SQL OR SUPABASE TABLES REQUIRED.
-Auto-sync behavior is unchanged.
-V4.8.4 remains the golden rollback checkpoint.
+SAFETY
+- No SQL changes.
+- No Supabase schema changes.
+- No destructive data migration.
+- Existing scanner, Shopping Mode, Learning Brain, cover rescue, backups, and sync remain in place.
+- V4.8.4 remains the rollback checkpoint.

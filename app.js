@@ -55,12 +55,12 @@ function saveChallenges(x){localStorage.setItem(CHALLENGE_KEY,JSON.stringify(x))
 var workIntelligence={};try{workIntelligence=JSON.parse(localStorage.getItem(WORK_INTEL_KEY))||{}}catch(e){}
 function saveWorkIntelligence(){localStorage.setItem(WORK_INTEL_KEY,JSON.stringify(workIntelligence))}
 function workIntelKey(title,author){return norm(title)+"|"+norm(author)}
-function getWorkIntelligence(title,author){var exact=workIntelligence[workIntelKey(title,author)];if(exact&&!exact.deleted)return exact;var t=norm(title);var ks=Object.keys(workIntelligence);for(var i=0;i<ks.length;i++){var r=workIntelligence[ks[i]]||{};if(r.deleted)continue;if(norm(r.title)===t&&(!author||!r.author||norm(r.author)===norm(author)))return r}return null}
+function getWorkIntelligence(title,author){var exact=workIntelligence[workIntelKey(title,author)];if(exact)return exact;var t=norm(title);var ks=Object.keys(workIntelligence);for(var i=0;i<ks.length;i++){var r=workIntelligence[ks[i]]||{};if(norm(r.title)===t&&(!author||!r.author||norm(r.author)===norm(author)))return r}return null}
 function learnWorkIntelligence(b){if(!b||!b.title)return;var key=workIntelKey(b.title,b.author||""),old=workIntelligence[key]||{},rec={title:b.title,author:b.author||"",genres:uniqText(b.genres||[]),tags:uniqText(b.tags||[]),series:String(b.series||"").trim(),seriesNo:String(b.seriesNo||"").trim(),spice:(+b.spice>0?+b.spice:null),confirmedAt:now(),source:"Confirmed in your Bookshop Brain"};if(!rec.genres.length&&old.genres)rec.genres=old.genres;if(!rec.tags.length&&old.tags)rec.tags=old.tags;if(!rec.series&&old.series){rec.series=old.series;rec.seriesNo=old.seriesNo||""}if(rec.spice===null&&old.spice!=null)rec.spice=old.spice;if(old.knownISBNs)rec.knownISBNs=old.knownISBNs;if(old.updatedAt)rec.updatedAt=old.updatedAt;workIntelligence[key]=rec;saveWorkIntelligence()}
 function learnedISBNEntry(isbn){
  isbn=cleanISBN(isbn);if(!isbn)return null;
  var keys=Object.keys(workIntelligence||{});
- for(var i=0;i<keys.length;i++){var rec=workIntelligence[keys[i]]||{};if(rec.deleted)continue;var arr=[].concat(rec.knownISBNs||[]);for(var j=0;j<arr.length;j++){var ent=typeof arr[j]==="string"?{isbn:arr[j]}:(arr[j]||{});if(cleanISBN(ent.isbn)===isbn)return{key:keys[i],record:rec,entry:ent}}}
+ for(var i=0;i<keys.length;i++){var rec=workIntelligence[keys[i]]||{},arr=[].concat(rec.knownISBNs||[]);for(var j=0;j<arr.length;j++){var ent=typeof arr[j]==="string"?{isbn:arr[j]}:(arr[j]||{});if(cleanISBN(ent.isbn)===isbn)return{key:keys[i],record:rec,entry:ent}}}
  return null
 }
 function rememberISBNForWork(isbn,b){
@@ -147,7 +147,7 @@ function learnWorkFromCatalogedCopy(book){
   source:"Confirmed in your cataloged copy"
  };
  if(!(payload.genres.length||payload.tags.length||payload.series||payload.seriesNo||payload.spice!=null))return null;
- var k=workIntelKey(payload.title,payload.author),old=workIntelligence[k]||{};if(old.knownISBNs)payload.knownISBNs=old.knownISBNs;if(old.confirmedAt)payload.confirmedAt=old.confirmedAt;payload.updatedAt=now();payload.deleted=false;workIntelligence[k]=payload;
+ workIntelligence[workIntelKey(payload.title,payload.author)]=payload;
  saveWorkIntelligence();
  return payload
 }
@@ -160,38 +160,6 @@ function getOrBootstrapWorkIntelligence(title,author){
 }
 
 function intelligenceFor(f){var k=knownBook(f.title||"",f.author||""),learned=getOrBootstrapWorkIntelligence(f.title||"",f.author||""),cat=seriesFromCatalog(f.title||""),ser=(k&&k.series)?{series:k.series,seriesNo:k.seriesNo||""}:cat.series?cat:inferSeries(f.title||"",f.description||"");var gs=(learned&&learned.genres&&learned.genres.length)?learned.genres.slice():mapGenres(f.genres||[],f.title||"",f.description||"",f.author||""),tags=(learned&&learned.tags&&learned.tags.length)?learned.tags.slice():inferTags(f.genres||[],f.title||"",f.description||"",f.author||""),ss=suggestSpice(gs,f.description||"",f.title||"",f.author||""),conf=spiceConfidence(gs,f.description||"",ss,f.title||"",f.author||"");if(learned&&learned.spice!=null){ss=+learned.spice;conf="confirmed by you"}var learnedSeries=(learned&&learned.series)?learned.series:"",learnedNo=(learned&&learned.seriesNo)?learned.seriesNo:"";return{genres:gs,tags:tags,series:learnedSeries||ser.series||f.series||"",seriesNo:learnedNo||ser.seriesNo||f.seriesNo||"",spice:ss,spiceConfidence:conf,source:learned?"Confirmed in your Bookshop Brain":(k?(k.source||"Enchanted Bookshop knowledge"):"Public book metadata"),workBrain:!!learned}}
-function brainSourceBadge(text,kind){return '<span class="brain-source '+esc(kind||'learned')+'">'+esc(text)+'</span>'}
-function activeBrainRecords(){return Object.keys(workIntelligence||{}).map(function(k){return{key:k,record:workIntelligence[k]||{}}}).filter(function(x){return !x.record.deleted&&x.record.title}).sort(function(a,b){return String(a.record.title||'').localeCompare(String(b.record.title||''))})}
-function brainKnownISBNs(rec){return [].concat(rec&&rec.knownISBNs||[]).map(function(x){return typeof x==='string'?{isbn:x,source:'Learned ISBN'}:(x||{})}).filter(function(x){return cleanISBN(x.isbn)})}
-function brainPanelHTML(book){
- if(!book||!book.id)return '';
- var rec=getWorkIntelligence(book.title||'',book.author||''),known=brainKnownISBNs(rec),e=book.edition||{},facts=[];
- if(rec&&rec.genres&&rec.genres.length)facts.push('<div><b>Genres</b><span>'+esc(rec.genres.join(', '))+'</span>'+brainSourceBadge('Confirmed / learned','confirmed')+'</div>');
- if(rec&&rec.tags&&rec.tags.length)facts.push('<div><b>Tropes / Tags</b><span>'+esc(rec.tags.join(', '))+'</span>'+brainSourceBadge('Confirmed / learned','confirmed')+'</div>');
- if(rec&&rec.series)facts.push('<div><b>Series</b><span>'+esc(rec.series+(rec.seriesNo?' #'+rec.seriesNo:''))+'</span>'+brainSourceBadge('Confirmed / learned','confirmed')+'</div>');
- if(rec&&rec.spice!=null)facts.push('<div><b>Spice</b><span>'+esc(rec.spice)+'/5</span>'+brainSourceBadge('Confirmed by you','confirmed')+'</div>');
- var ownedIsbn=cleanISBN(e.isbn||'');
- return '<section class="brain-panel"><div class="brain-panel-head"><div><div class="eyebrow">🧠 WHAT MY BOOKSHOP KNOWS</div><h3>'+esc(book.title||'This work')+'</h3><div class="muted">'+esc(book.author||'Unknown author')+'</div></div>'+brainSourceBadge(rec?(rec.source||'Bookshop Brain'):'Catalog only',rec?'confirmed':'catalog')+'</div>'+
-  '<div class="brain-section"><b>📖 Work knowledge</b><div class="brain-facts">'+(facts.length?facts.join(''):'<div class="muted">No separate learned work facts yet. Your cataloged copy is still the source of truth.</div>')+'</div></div>'+
-  '<div class="brain-section"><b>💎 This physical copy</b><div class="brain-copy-grid"><span>ISBN <strong>'+esc(ownedIsbn||'Not saved')+'</strong></span><span>Edition <strong>'+esc(e.name||'Not specified')+'</strong></span><span>Printing <strong>'+esc(e.printing||'Not specified')+'</strong></span><span>Cover <strong>'+esc(book.coverSource||(book.cover?'Saved cover':'No cover'))+'</strong></span></div>'+brainSourceBadge('Your cataloged copy','catalog')+'</div>'+
-  '<div class="brain-section"><b>🔢 Learned ISBNs</b>'+(known.length?'<div class="brain-isbn-list">'+known.map(function(x){return '<div><span><strong>'+esc(cleanISBN(x.isbn))+'</strong><small>'+esc(x.source||'Confirmed by you')+'</small></span><button type="button" class="brain-forget-isbn" data-isbn="'+esc(cleanISBN(x.isbn))+'">Forget</button></div>'}).join('')+'</div>':'<div class="muted tiny">No alternate ISBNs have been taught to this work yet.</div>')+'</div>'+
-  '<div class="brain-actions"><button type="button" class="pill" id="brainRefreshFromCopy">✨ Correct Brain from this copy</button>'+(rec?'<button type="button" class="danger" id="brainForgetWork">Forget learned work facts</button>':'')+'</div><div class="tiny muted">Brain controls change learned knowledge only. They never delete your physical book record. Forgotten knowledge can travel through Work Intelligence sync.</div></section>'
-}
-function refreshBrainPanel(book){var host=el('#brainPanelHost');if(host)host.innerHTML=brainPanelHTML(book);wireBrainPanel(book)}
-function forgetLearnedISBN(book,isbn){var key=workIntelKey(book.title,book.author||''),rec=workIntelligence[key]||getWorkIntelligence(book.title,book.author||'');if(!rec)return;rec.knownISBNs=brainKnownISBNs(rec).filter(function(x){return cleanISBN(x.isbn)!==cleanISBN(isbn)});rec.updatedAt=now();rec.deleted=false;workIntelligence[key]=rec;saveWorkIntelligence();autoSyncMaybe();refreshBrainPanel(book)}
-function forgetWorkBrain(book){var key=workIntelKey(book.title,book.author||''),rec=workIntelligence[key]||{};workIntelligence[key]={title:book.title||rec.title||'',author:book.author||rec.author||'',deleted:true,updatedAt:now(),source:'Forgotten by you'};saveWorkIntelligence();autoSyncMaybe();refreshBrainPanel(book)}
-function wireBrainPanel(book){var refresh=el('#brainRefreshFromCopy');if(refresh)refresh.onclick=function(){learnWorkIntelligence(book);refreshBrainPanel(book)};document.querySelectorAll('.brain-forget-isbn').forEach(function(btn){btn.onclick=function(){var isbn=btn.getAttribute('data-isbn');if(confirm('Forget learned ISBN '+isbn+' for this work? Your physical book record will not be changed.'))forgetLearnedISBN(book,isbn)}});var forget=el('#brainForgetWork');if(forget)forget.onclick=function(){if(confirm('Forget the learned Work Brain facts for '+(book.title||'this book')+'? Your cataloged copy stays safe. Saving this book later can teach the Brain again.'))forgetWorkBrain(book)}}
-function brainVault(){
- var rows=activeBrainRecords(),learnedCount=rows.reduce(function(n,x){return n+brainKnownISBNs(x.record).length},0),cards='';
- rows.forEach(function(x){
-  var r=x.record,k=brainKnownISBNs(r),summary=[];
-  if(r.series)summary.push('🔮 '+r.series+(r.seriesNo?' #'+r.seriesNo:''));
-  if(r.genres&&r.genres.length)summary.push('📚 '+r.genres.slice(0,2).join(', '));
-  summary.push('🔢 '+k.length+' learned ISBN'+(k.length===1?'':'s'));
-  cards+='<button class="brain-vault-card" data-brain-title="'+esc(r.title||'')+'" data-brain-author="'+esc(r.author||'')+'"><div><b>'+esc(r.title||'Untitled')+'</b><span>'+esc(r.author||'Unknown author')+'</span></div><div class="brain-vault-summary">'+esc(summary.join(' · '))+'</div></button>';
- });
- return '<div class="eyebrow">Bookshop Brain 2.0</div><h1 class="title">🧠 What My Bookshop Knows</h1><p class="sub">Inspect knowledge you have confirmed or taught your Bookshop. Public guesses are not treated as your confirmed facts.</p><div class="stats"><div class="stat"><b>'+rows.length+'</b><span>Known works</span></div><div class="stat"><b>'+learnedCount+'</b><span>Learned ISBNs</span></div></div><div class="brain-vault-list">'+(cards||'<div class="empty">Your Brain Vault is waiting for confirmed knowledge. ✨</div>')+'</div>'
-}
 function currentReadingBooks(){return owned().filter(function(b){return b.status==="currently-reading"||b.status==="rereading"})}
 
 function home(){
@@ -359,7 +327,6 @@ function render(){
  else if(state.view==="wishlist")c.innerHTML=shelf("✨ Want to Own",visible().filter(function(b){return b.wantOwn}));
  else if(state.view==="tbr")c.innerHTML=shelf("📖 Want to Read",visible().filter(function(b){return b.status==="want-to-read"}));
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
- else if(state.view==="brain")c.innerHTML=brainVault();
  else if(state.view==="backup")c.innerHTML=backup();
  else if(state.view==="sync")c.innerHTML=syncPage();
  wirePage()
@@ -563,15 +530,40 @@ async function repairMissingCoverFromEditor(book,button){
  }
 }
 
+
+
+// V4.9 — The Collector's Library: derived Work → Edition → Copy presentation.
+// Existing saved book records remain the source of truth; no migration is required.
+function sameWork(a,b){return !!(a&&b&&norm(a.title)===norm(b.title)&&norm(a.author||'')===norm(b.author||''))}
+function editionKey(b){var e=(b&&b.edition)||{},isbn=cleanISBN(e.isbn||'');return isbn?('isbn:'+isbn):['meta',norm(e.name||''),norm(e.format||''),norm(e.publisher||''),String(e.publicationDate||'')].join('|')}
+function workCopiesFor(b){return visible().filter(function(x){return sameWork(x,b)})}
+function editionGroupsFor(b){var groups={};workCopiesFor(b).forEach(function(x){var k=editionKey(x);if(!groups[k])groups[k]=[];groups[k].push(x)});return Object.keys(groups).map(function(k){return groups[k]})}
+function collectorCover(b){return '<div class="collector-cover">'+(b&&b.cover?'<img src="'+esc(b.cover)+'" alt="">':'<div class="collector-cover-empty">☾<br><span>'+esc(b&&b.title||'Book')+'</span></div>')+'</div>'}
+function collectorChips(items){return uniqText(items||[]).map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')}
+function collectorEditionMeta(b){var e=(b&&b.edition)||{},a=[];if(e.format)a.push(e.format);if(e.publisher)a.push(e.publisher);if(e.publicationDate)a.push(e.publicationDate);if(e.isbn)a.push('ISBN '+cleanISBN(e.isbn));return a.map(esc).join(' • ')}
+function openCollectorBook(b){
+ if(!b)return;var copies=workCopiesFor(b),groups=editionGroupsFor(b),intel=getWorkIntelligence(b.title,b.author||'')||{},genres=uniqText([].concat(intel.genres||[],b.genres||[])),tags=uniqText([].concat(intel.tags||[],b.tags||[])),series=intel.series||b.series||'',seriesNo=intel.seriesNo||b.seriesNo||'';
+ var html='<div class="eyebrow">V4.9 • THE COLLECTOR’S LIBRARY</div><div class="collector-work-head">'+collectorCover(b)+'<div><div class="collector-layer">📖 WORK</div><h1 class="title collector-title">'+esc(b.title)+'</h1><div class="collector-author">'+esc(b.author||'Unknown author')+'</div>'+(series?'<div class="muted">'+esc(series)+(seriesNo?' • #'+esc(seriesNo):'')+'</div>':'')+'<div class="collector-tags">'+collectorChips(genres)+'</div>'+(tags.length?'<div class="tiny">'+esc(tags.join(' • '))+'</div>':'')+'</div></div>';
+ html+='<div class="collector-work-strip"><div><span>Reading</span><b>'+esc(String(b.status||'').replace(/-/g,' '))+'</b></div><div><span>Rating</span><b>'+(b.rating?stars(b.rating):'Not rated')+'</b></div><div><span>Spice</span><b>'+spice(b.spice||0)+'</b></div><div><span>Collection</span><b>'+copies.length+' cop'+(copies.length===1?'y':'ies')+' • '+groups.length+' edition'+(groups.length===1?'':'s')+'</b></div></div>';
+ html+='<div class="collector-section-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">';
+ groups.forEach(function(g,gi){var x=g[0],e=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(e.name||e.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(e.isbn?'<span class="collector-isbn">'+esc(cleanISBN(e.isbn))+'</span>':'')+'</div>'+(Array.isArray(e.special)&&e.special.length?'<div class="collector-features">'+collectorChips(e.special)+'</div>':'')+'<div class="collector-copies">';
+ g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory">✨ '+esc(c.copyConnections.join(' • '))+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
+ html+='</div></section>'});
+ html+='</div><div class="tiny collector-safety">V4.9 organizes your existing records into Work → Edition → Copy views without rewriting your saved library data.</div>';
+ el('#modalBody').innerHTML=html;el('#modal').classList.remove('hidden');
+ document.querySelectorAll('.collectorEdit').forEach(function(btn){btn.onclick=function(ev){ev.stopPropagation();var id=btn.getAttribute('data-copy-id'),x=visible().find(function(z){return z.id===id});if(x)openBook(x)}});
+ document.querySelectorAll('.collectorDuplicate').forEach(function(btn){btn.onclick=function(ev){ev.stopPropagation();var id=btn.getAttribute('data-copy-id'),x=visible().find(function(z){return z.id===id});if(!x)return;var n=JSON.parse(JSON.stringify(x));n.id='';n.workId=x.workId||uid();n.notes='';n.copyConnections=[];n.updatedAt=now();openBook(n)}});
+ var add=el('#collectorAddEdition');if(add)add.onclick=function(){openBook({id:'',workId:b.workId||uid(),title:b.title,author:b.author,genres:(b.genres||[]).slice(),tags:(b.tags||[]).slice(),series:b.series||'',seriesNo:b.seriesNo||'',status:b.status||'want-to-read',owned:true,wantOwn:false,rating:b.rating||0,favorite:false,spice:b.spice||0,cover:'',edition:{isbn:'',name:'',format:'Hardcover',publisher:'',publicationDate:'',pages:'',printing:'',special:[]},copyConnections:[],notes:''})};
+}
+
 function openBook(b){
  b=b||{id:"",workId:"",title:"",author:"",genres:[],tags:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""};var e=b.edition||{};
  el("#modalBody").innerHTML='<div class="eyebrow">'+(b.id?"Edit copy":"Add to collection")+'</div><h1 class="title">'+(b.id?"Edit Book":"A New Book")+'</h1><form id="bookForm"><div class="form">'+
  field("Title","title",b.title,true)+field("Author","author",b.author)+genreField(b.genres||[])+field("Tropes / Tags","tags",(b.tags||[]).join(", "))+(b.intelligence?'<div class="field full"><div class="guardian purple"><div class="eyebrow">✨ Book Intelligence</div><div class="muted">Genre: <b>'+esc((b.genres||[]).join(", ")||"Uncertain")+'</b><br>Series: <b>'+esc((b.series||"")+(b.seriesNo?" #"+b.seriesNo:"")||"Uncertain")+'</b>'+(b.seriesSuggested?' <span class="tiny">• possible — confirm below</span>':'')+'<br>Spice: <b>'+((b.spiceConfidence||"unknown")=="unknown"?"Unknown":esc(String(b.spice||0))+"/5")+'</b> • '+esc(b.spiceConfidence||"unknown")+(b.seriesDiagnostics?'<br>Series search: '+esc(String(b.seriesDiagnostics.matchedEditions||0))+' matching editions • '+esc(String(b.seriesDiagnostics.claims||0))+' usable series claims'+(b.seriesDiagnostics.openLibraryClaims?' • Open Library '+esc(String(b.seriesDiagnostics.openLibraryClaims))+' claim(s)':'')+(b.seriesDiagnostics.googleClaims?' • Google '+esc(String(b.seriesDiagnostics.googleClaims))+' claim(s)':'')+(b.seriesDiagnostics.cacheHits?' • cache hits '+esc(String(b.seriesDiagnostics.cacheHits)):'')+(b.seriesDiagnostics.rateLimited?' • Google rate-limited':''):'')+(b.workBrain?'<br>Work Brain: <b>Using your confirmed work-level knowledge</b>':'')+'<br>Source: '+esc(b.intelligenceSource||"Public metadata")+'</div></div></div>':'')+field("Series","series",b.series)+field("Series number","seriesNo",b.seriesNo)+
  selectField("Reading status","status",["want-to-read","currently-reading","read","dnf","rereading"],b.status)+selectField("Rating","rating",["0","1","2","3","4","5"],String(b.rating||0))+selectField((b.spiceSuggested&&!b.spiceConfirmed?"Suggested spice":"Spice"),"spice",["0","1","2","3","4","5"],String(b.spice||0))+field("Finished date","finishedDate",b.finishedDate||"")+checkbox("readDateUnknown","🕰️ Read before tracking / date unknown",!!b.readDateUnknown)+
  field("ISBN","isbn",e.isbn)+field("Edition","editionName",e.name||"")+selectField("Format","format",["Paperback","Hardcover","Box Set","Ebook","Audiobook","Other"],e.format||"Paperback")+field("Publisher","publisher",e.publisher)+field("Publication date","publicationDate",e.publicationDate)+field("Page count","pages",e.pages)+field("Printing","printing",e.printing)+field("Special features","special",(e.special||[]).join(", "),"",true)+
- copyConnectionsField(b.copyConnections||[])+'<div class="field full"><label>Notes</label><textarea name="notes">'+esc(b.notes||"")+'</textarea></div>'+checkbox("owned","I own this physical copy",b.owned)+checkbox("wantOwn","I want to own this",b.wantOwn)+checkbox("favorite","Favorite",b.favorite)+(b.id?'<div id="brainPanelHost" class="field full">'+brainPanelHTML(b)+'</div>':'')+'</div><div class="actions">'+(b.id?'<button type="button" class="danger" id="deleteBtn">Delete</button>':'')+'<button class="primary" type="submit">'+(b.id?"Save changes":"Add to bookshop")+'</button><button type="button" class="pill" id="repairMissingCover" style="display:none">✨ Find Missing Cover</button></div><div id="coverCandidatePanel"></div></form>';
+ copyConnectionsField(b.copyConnections||[])+'<div class="field full"><label>Notes</label><textarea name="notes">'+esc(b.notes||"")+'</textarea></div>'+checkbox("owned","I own this physical copy",b.owned)+checkbox("wantOwn","I want to own this",b.wantOwn)+checkbox("favorite","Favorite",b.favorite)+'</div><div class="actions">'+(b.id?'<button type="button" class="danger" id="deleteBtn">Delete</button>':'')+'<button class="primary" type="submit">'+(b.id?"Save changes":"Add to bookshop")+'</button><button type="button" class="pill" id="repairMissingCover" style="display:none">✨ Find Missing Cover</button></div><div id="coverCandidatePanel"></div></form>';
  el("#modal").classList.remove("hidden");
- if(b.id)wireBrainPanel(b);
  
 var repairBtn=el("#repairMissingCover");
 if(repairBtn){
@@ -592,7 +584,7 @@ el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormDa
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.9 • Bookshop Brain 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.9 • The Collector’s Library</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -1038,7 +1030,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.9",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-9-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.4",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-4-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -1065,7 +1057,7 @@ function mergeById(local,remoteRows){
 function syncStatus(msg,bad){var st=el("#syncRunStatus");if(st){st.className="syncstatus "+(bad?"bad":"ok");st.textContent=msg}}
 async function fetchCloudWorkIntel(){var r=await api("enchanted_work_intelligence?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
 function workIntelAsRecords(){return Object.keys(workIntelligence||{}).map(function(k){var x=Object.assign({},workIntelligence[k]||{});x.id=k;x.updatedAt=x.updatedAt||now();x.deleted=!!x.deleted;return x})}
-function recordsToWorkIntel(records){var out={};(records||[]).forEach(function(x){if(x&&x.id){var y=Object.assign({},x);delete y.id;out[x.id]=y}});return out}
+function recordsToWorkIntel(records){var out={};(records||[]).forEach(function(x){if(x&&x.id&&!x.deleted){var y=Object.assign({},x);delete y.id;delete y.deleted;out[x.id]=y}});return out}
 async function pushWorkIntel(){
  var s=getSync(),payload=workIntelAsRecords().map(function(x){var data=Object.assign({},x);delete data.id;return{id:x.id,user_id:s.userId,data:data,updated_at:x.updatedAt||now(),deleted:!!x.deleted}});
  if(payload.length)await api("enchanted_work_intelligence?on_conflict=id",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)})
@@ -1109,7 +1101,6 @@ async function syncSeries(){
 function autoSyncMaybe(){var s=getSync();if(s.auto&&navigator.onLine&&s.token)setTimeout(syncNow,250)}
 function autoSyncSeriesMaybe(){var s=getSync();if(s.auto&&navigator.onLine&&s.token)setTimeout(syncSeries,250)}
 function wirePage(){
- document.querySelectorAll(".brain-vault-card").forEach(function(x){x.onclick=function(){var t=x.getAttribute("data-brain-title"),a=x.getAttribute("data-brain-author"),b=visible().find(function(z){return norm(z.title)===norm(t)&&(!a||norm(z.author)===norm(a))});if(b)openBook(b);else alert("This learned work is not currently attached to a cataloged physical copy.")}});
  if(el("#homeScan"))el("#homeScan").onclick=openGuardian;if(el("#homeAddScan"))el("#homeAddScan").onclick=openGuardian;if(el("#saveChallenge"))el("#saveChallenge").onclick=function(){setChallengeGoal(el("#challengeGoal").value)};
  document.querySelectorAll("[data-goto]").forEach(function(b){b.onclick=function(){state.view=b.getAttribute("data-goto");save();render()}});
  if(el("#exportBtn"))el("#exportBtn").onclick=exportJSON;
@@ -1126,14 +1117,14 @@ document.addEventListener("click",function(e){
 
  var bg=e.target.closest("[data-browse-genre]");if(bg){state.browseGenre=bg.getAttribute("data-browse-genre");save();render();return}
  var bf=e.target.closest("[data-browse-filter]");if(bf){state.browseFilter=bf.getAttribute("data-browse-filter");save();render();return}
- var sb=e.target.closest("[data-stack-id]");if(sb){var bk=visible().find(function(x){return x.id===sb.getAttribute("data-stack-id")});if(bk)openBook(bk);return}
+ var sb=e.target.closest("[data-stack-id]");if(sb){var bk=visible().find(function(x){return x.id===sb.getAttribute("data-stack-id")});if(bk)openCollectorBook(bk);return}
 
  var st=e.target.closest("[data-series-toggle]");if(st){toggleSeriesOwned(st.getAttribute("data-series-toggle"),st.getAttribute("data-series-title"));return}
  var sc=e.target.closest("[data-series-scan]");if(sc){catalogSeriesCopy(sc.getAttribute("data-series-scan"),sc.getAttribute("data-series-title"),sc.getAttribute("data-series-no"));return}
  var sf=e.target.closest("[data-series-find]");if(sf){findSeriesLineup(sf.getAttribute("data-series-find"));return}
  var se=e.target.closest("[data-series-edit]");if(se){openSeriesEditor(se.getAttribute("data-series-edit"));return}
  var mb=e.target.closest("[data-missing-series]");if(mb){openMissing(mb.getAttribute("data-missing-series"),mb.getAttribute("data-missing-title"),mb.getAttribute("data-missing-no"));return}
- var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openBook(b)}
+ var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openCollectorBook(b)}
 });
 el("#addBtn").onclick=function(){openBook()};el("#scanBtn").onclick=openGuardian;el("#closeModal").onclick=closeModal;el("#modal").onclick=function(e){if(e.target.id==="modal")closeModal()};el("#search").oninput=function(){if(state.view!=="library")state.view="library";render()};
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferredInstall=e;el("#installBtn").classList.remove("hidden")});el("#installBtn").onclick=async function(){if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;el("#installBtn").classList.add("hidden")}};
