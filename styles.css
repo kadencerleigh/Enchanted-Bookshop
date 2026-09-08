@@ -425,3 +425,16 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .unknown-work-choice span:last-child{display:flex;flex-direction:column;gap:3px;min-width:0}
 .unknown-work-choice small{opacity:.72}
 @media(max-width:620px){.unknown-rescue-fields{grid-template-columns:1fr}}
+
+/* V4.9 — Bookshop Brain 2.0 */
+.brain-panel{width:100%;padding:16px;border:1px solid rgba(224,191,119,.28);border-radius:18px;background:linear-gradient(180deg,rgba(90,61,111,.16),rgba(0,0,0,.12))}
+.brain-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.brain-panel-head h3{margin:3px 0}
+.brain-source{display:inline-flex;width:max-content;max-width:100%;padding:4px 8px;border:1px solid rgba(224,191,119,.24);border-radius:999px;font-size:10px;letter-spacing:.04em;background:rgba(0,0,0,.16)}
+.brain-source.confirmed{border-color:rgba(166,211,172,.38)}.brain-source.catalog{border-color:rgba(224,191,119,.35)}
+.brain-section{margin-top:14px;padding-top:12px;border-top:1px solid rgba(224,191,119,.15)}
+.brain-facts>div{display:grid;grid-template-columns:110px 1fr auto;gap:9px;align-items:center;padding:7px 0}.brain-facts span{min-width:0}
+.brain-copy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0}.brain-copy-grid span{display:flex;flex-direction:column;padding:9px;border-radius:11px;background:rgba(0,0,0,.13);font-size:11px}.brain-copy-grid strong{font-size:12px;margin-top:3px;overflow-wrap:anywhere}
+.brain-isbn-list{margin-top:8px}.brain-isbn-list>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(224,191,119,.1)}.brain-isbn-list span{display:flex;flex-direction:column}.brain-isbn-list small{opacity:.7;margin-top:2px}.brain-isbn-list button{border:1px solid rgba(221,130,130,.35);background:transparent;color:inherit;border-radius:999px;padding:6px 9px}
+.brain-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 8px}
+.brain-vault-list{display:grid;gap:10px;margin-top:18px}.brain-vault-card{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;text-align:left;padding:14px 16px;border:1px solid rgba(224,191,119,.2);border-radius:16px;background:rgba(255,255,255,.035);color:inherit}.brain-vault-card>div:first-child{display:flex;flex-direction:column;gap:3px}.brain-vault-card span{opacity:.7;font-size:12px}.brain-vault-summary{text-align:right;font-size:11px;opacity:.78}
+@media(max-width:620px){.brain-panel-head{flex-direction:column}.brain-facts>div{grid-template-columns:1fr}.brain-copy-grid{grid-template-columns:1fr 1fr}.brain-vault-card{grid-template-columns:1fr}.brain-vault-summary{text-align:left}.brain-actions>*{width:100%}}
