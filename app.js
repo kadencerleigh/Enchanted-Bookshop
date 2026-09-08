@@ -260,7 +260,7 @@ function syncPage(){
  return '<div class="eyebrow">Optional cross-device cloud</div><h1 class="title">Sync</h1><p class="sub">Your bookshop always works locally first. For phone ↔ Windows sync, V3 can connect to your own Supabase project. That keeps the cloud account under your control.</p>'+
  '<div class="box"><h3>1. Connect your project</h3><div class="form"><div class="field full"><label>Supabase project URL</label><input id="syncUrl" placeholder="https://xxxxx.supabase.co" value="'+esc(s.url)+'"></div><div class="field full"><label>Anon / publishable key</label><input id="syncAnon" type="password" placeholder="eyJ..." value="'+esc(s.anon)+'"></div></div><div class="actions"><button class="primary" id="saveSyncConfig">Save connection</button></div></div>'+
  '<div class="box"><h3>2. Your sync account</h3><div class="form"><div class="field"><label>Email</label><input id="syncEmail" type="email" value="'+esc(s.email)+'"></div><div class="field"><label>Password</label><input id="syncPassword" type="password" placeholder="••••••••"></div></div><div class="actions">'+(signed?'<button class="danger" id="signOut">Sign out</button>':'<button class="pill" id="signUp">Create account</button><button class="primary" id="signIn">Sign in</button>')+'</div><div id="syncAuthStatus" class="syncstatus '+(signed?"ok":"")+'">'+(signed?'☁️ Signed in — sync is available.':'Not signed in yet.')+'</div></div>'+
- '<div class="box"><h3>3. Sync your library</h3><p class="tiny">V4.7.4 merges books and Series Catalogs separately by ID and keeps the newest version of the same record. Different series are combined instead of replacing each other. <b>Pull + merge</b> never uploads; <b>Sync now</b> performs a two-way merge, then uploads the combined result. Your local copy remains available offline.</p><label><input type="checkbox" id="autoSync" '+(s.auto?"checked":"")+'> Auto-sync after local changes when online</label><div class="actions"><button class="pill" id="pullSync">☁️ Pull + merge</button><button class="primary" id="pushSync">☁️ Sync now</button></div><div id="syncRunStatus" class="syncstatus">Ready.</div></div>'+
+ '<div class="box"><h3>3. Sync your library</h3><p class="tiny">V4.7.4 merges books, Series Catalogs, and Work Intelligence separately by ID and keeps the newest version of the same record. Different series are combined instead of replacing each other. <b>Pull + merge</b> never uploads; <b>Sync now</b> performs a two-way merge, then uploads the combined result. Your local copy remains available offline.</p><label><input type="checkbox" id="autoSync" '+(s.auto?"checked":"")+'> Auto-sync after local changes when online</label><div class="actions"><button class="pill" id="pullSync">☁️ Pull + merge</button><button class="primary" id="pushSync">☁️ Sync now</button></div><div id="syncRunStatus" class="syncstatus">Ready.</div></div>'+
  '<div class="box"><h3>Server setup</h3><p class="tiny">The included <b>SUPABASE_SETUP.sql</b> file creates the table and row-level security rules required for this app. Run it once in your Supabase SQL editor before syncing.</p></div>'
 }
 function render(){
@@ -375,7 +375,7 @@ el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormDa
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.10.6.2 • Forced Cover Refresh</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.7.11 • Work Intelligence Sync</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -671,7 +671,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.10.6.2",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-10-6-2-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.11",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-11-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -696,6 +696,13 @@ function mergeById(local,remoteRows){
  return Object.keys(map).map(function(k){return map[k]})
 }
 function syncStatus(msg,bad){var st=el("#syncRunStatus");if(st){st.className="syncstatus "+(bad?"bad":"ok");st.textContent=msg}}
+async function fetchCloudWorkIntel(){var r=await api("enchanted_work_intelligence?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
+function workIntelAsRecords(){return Object.keys(workIntelligence||{}).map(function(k){var x=Object.assign({},workIntelligence[k]||{});x.id=k;x.updatedAt=x.updatedAt||now();x.deleted=!!x.deleted;return x})}
+function recordsToWorkIntel(records){var out={};(records||[]).forEach(function(x){if(x&&x.id&&!x.deleted){var y=Object.assign({},x);delete y.id;delete y.deleted;out[x.id]=y}});return out}
+async function pushWorkIntel(){
+ var s=getSync(),payload=workIntelAsRecords().map(function(x){var data=Object.assign({},x);delete data.id;return{id:x.id,user_id:s.userId,data:data,updated_at:x.updatedAt||now(),deleted:!!x.deleted}});
+ if(payload.length)await api("enchanted_work_intelligence?on_conflict=id",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)})
+}
 async function fetchCloudBooks(){var r=await api("enchanted_books?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
 async function fetchCloudSeries(){var r=await api("enchanted_series?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
 async function pushBooks(){
@@ -708,23 +715,24 @@ async function pushSeries(){
 }
 async function pullAndMergeCloud(){
  var s=getSync();if(!s.userId)throw Error("Sign in first.");
- var remBooks=await fetchCloudBooks(),remSeries=await fetchCloudSeries();
- var beforeBooks=state.books.length,beforeSeries=seriesCatalog.filter(function(x){return !x.deleted}).length;
+ var remBooks=await fetchCloudBooks(),remSeries=await fetchCloudSeries(),remWork=await fetchCloudWorkIntel();
+ var beforeBooks=state.books.length,beforeSeries=seriesCatalog.filter(function(x){return !x.deleted}).length,beforeWork=Object.keys(workIntelligence||{}).length;
  state.books=mergeById(state.books,remBooks);seriesCatalog=mergeById(seriesCatalog,remSeries);
- save();saveSeries();
- return{booksAdded:Math.max(0,state.books.length-beforeBooks),seriesAdded:Math.max(0,seriesCatalog.filter(function(x){return !x.deleted}).length-beforeSeries)}
+ workIntelligence=recordsToWorkIntel(mergeById(workIntelAsRecords(),remWork));
+ save();saveSeries();saveWorkIntelligence();
+ return{booksAdded:Math.max(0,state.books.length-beforeBooks),seriesAdded:Math.max(0,seriesCatalog.filter(function(x){return !x.deleted}).length-beforeSeries),workAdded:Math.max(0,Object.keys(workIntelligence||{}).length-beforeWork)}
 }
 async function pullSync(){
  syncStatus("☁️ Pulling cloud data + merging safely...",false);
- try{var r=await pullAndMergeCloud();render();if(state.view==="sync")syncStatus("☁️ Pull complete — local data kept, cloud data merged. Series added: "+r.seriesAdded+".",false)}
+ try{var r=await pullAndMergeCloud();render();if(state.view==="sync")syncStatus("☁️ Pull complete — local data kept, cloud data merged. Series added: "+r.seriesAdded+". Work Intelligence added: "+r.workAdded+".",false)}
  catch(e){syncStatus(e.message,true)}
 }
 async function syncNow(){
  syncStatus("☁️ Two-way merge in progress...",false);
  try{
   await pullAndMergeCloud();
-  await pushBooks();await pushSeries();
-  save();saveSeries();render();if(state.view==="sync")syncStatus("☁️ Synced successfully — books + series merged on both sides.",false)
+  await pushBooks();await pushSeries();await pushWorkIntel();
+  save();saveSeries();saveWorkIntelligence();render();if(state.view==="sync")syncStatus("☁️ Synced successfully — books + series + Work Intelligence merged on both sides.",false)
  }catch(e){syncStatus(e.message,true)}
 }
 async function syncSeries(){
