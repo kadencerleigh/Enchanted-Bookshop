@@ -180,21 +180,10 @@ function browse(){
  var genreChips=genres.map(function(g){return'<button class="pill '+(state.browseGenre===g?"active":"")+'" data-browse-genre="'+esc(g)+'">'+esc(g)+'</button>'}).join("");
  var filters=[["all","All"],["unread","📖 Unread"],["read","✅ Read"],["favorites","⭐ Favorites"],["spicy","🌶️ Spicy"]]
   .map(function(x){return'<button class="pill '+(state.browseFilter===x[0]?"active":"")+'" data-browse-filter="'+x[0]+'">'+x[1]+'</button>'}).join("");
- var stack=books.length?'<div class="magic-stack enchanted-physical-stack">'+books.map(function(b,i){
+ var stack=books.length?'<div class="magic-stack">'+books.map(function(b,i){
    var meta=[b.author||"",b.series?(b.series+(b.seriesNo?" • #"+b.seriesNo:"")):""].filter(Boolean).join(" • ");
-   var shift=[6,30,15,44,10,26,2][i%7];
-   var tilt=[-1.4,.8,-.5,1.2,-.9,.4,1.5][i%7];
-   var thick=[54,68,60,76,58,72,64][i%7];
-   var inset=[0,12,4,18,7,14,2][i%7];
-   var sigils=["☾","✦","❦","✧","☽","✶","❧"];
-   var left=sigils[i%sigils.length],right=sigils[(i+3)%sigils.length];
-   return '<button class="stack-book enchanted-spine stack-tone-'+(i%7)+'" data-stack-id="'+esc(b.id)+'" style="--stack-shift:'+shift+'px;--stack-tilt:'+tilt+'deg;--spine-thick:'+thick+'px;--spine-inset:'+inset+'px">'+
-    '<span class="spine-ornament spine-ornament-left">'+left+'</span>'+
-    '<span class="stack-title">'+esc(b.title||"Untitled")+'</span>'+
-    '<span class="stack-meta">'+esc(meta)+'</span>'+
-    '<span class="spine-ornament spine-ornament-right">'+right+'</span>'+
-    '</button>'
-  }).join("")+'<div class="stack-shelf-shadow" aria-hidden="true"></div></div>':'<div class="empty">No books match this magical stack yet. ✨</div>';
+   return '<button class="stack-book stack-tone-'+(i%5)+'" data-stack-id="'+esc(b.id)+'" style="--stack-shift:'+((i%4)*8)+'px;--stack-tilt:'+(((i%7)-3)*0.7)+'deg"><span class="stack-title">'+esc(b.title||"Untitled")+'</span><span class="stack-meta">'+esc(meta)+'</span></button>'
+  }).join("")+'</div>':'<div class="empty">No books match this magical stack yet. ✨</div>';
  return '<div class="eyebrow">The enchanted shelves</div><h1 class="title">Browse by Genre</h1><p class="sub">Choose a genre, then narrow your shelf into a magical stack.</p>'+
  '<div class="browse-panel"><h3>🌙 Pick a genre</h3><div class="toolbar browse-chips">'+genreChips+'</div></div>'+
  '<div class="browse-panel"><h3>✨ Filter this stack</h3><div class="toolbar browse-chips">'+filters+'</div></div>'+
@@ -719,7 +708,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.13",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-13-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.13.1",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-13-1-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
