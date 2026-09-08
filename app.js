@@ -299,23 +299,7 @@ function syncPage(){
  '<div class="box"><h3>3. Sync your library</h3><p class="tiny">V4.7.4 merges books, Series Catalogs, and Work Intelligence separately by ID and keeps the newest version of the same record. Different series are combined instead of replacing each other. <b>Pull + merge</b> never uploads; <b>Sync now</b> performs a two-way merge, then uploads the combined result. Your local copy remains available offline.</p><label><input type="checkbox" id="autoSync" '+(s.auto?"checked":"")+'> Auto-sync after local changes when online</label><div class="actions"><button class="pill" id="pullSync">☁️ Pull + merge</button><button class="primary" id="pushSync">☁️ Sync now</button></div><div id="syncRunStatus" class="syncstatus">Ready.</div></div>'+
  '<div class="box"><h3>Server setup</h3><p class="tiny">The included <b>SUPABASE_SETUP.sql</b> file creates the table and row-level security rules required for this app. Run it once in your Supabase SQL editor before syncing.</p></div>'
 }
-
-function closeMobileMore(){
- var sheet=document.getElementById("mobileMoreSheet");
- if(sheet){sheet.classList.add("hidden");sheet.setAttribute("aria-hidden","true")}
-}
-function openMobileMore(){
- var sheet=document.getElementById("mobileMoreSheet");
- if(sheet){sheet.classList.remove("hidden");sheet.setAttribute("aria-hidden","false")}
-}
-function updateMobileNav(){
- document.querySelectorAll("[data-mobile-view]").forEach(function(btn){
-  btn.classList.toggle("active",btn.getAttribute("data-mobile-view")===state.view)
- });
-}
-
 function render(){
- updateMobileNav();
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
  if(state.view==="home")c.innerHTML=home();
@@ -724,7 +708,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.14",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-14-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.7.14.1",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-7-14-1-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -805,21 +789,6 @@ function wirePage(){
  if(el("#autoSync"))el("#autoSync").onchange=function(){var s=getSync();s.auto=this.checked;putSync(s)};
  if(el("#pushSync"))el("#pushSync").onclick=syncNow;if(el("#pullSync"))el("#pullSync").onclick=pullSync
 }
-
-document.addEventListener("click",function(e){
- var mv=e.target.closest("[data-mobile-view]");
- if(mv){
-  state.view=mv.getAttribute("data-mobile-view");
-  closeMobileMore();
-  save();
-  render();
-  window.scrollTo(0,0);
-  return;
- }
- if(e.target.closest("#mobileMoreBtn")){openMobileMore();return}
- if(e.target.closest("[data-mobile-more-close]")){closeMobileMore();return}
-});
-
 document.addEventListener("click",function(e){
  var v=e.target.closest("[data-view]");if(v){state.view=v.getAttribute("data-view");state.filter="all";save();render();return}
  var f=e.target.closest("[data-filter]");if(f){state.filter=f.getAttribute("data-filter");render();return}
@@ -839,4 +808,15 @@ el("#addBtn").onclick=function(){openBook()};el("#scanBtn").onclick=openGuardian
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferredInstall=e;el("#installBtn").classList.remove("hidden")});el("#installBtn").onclick=async function(){if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;el("#installBtn").classList.add("hidden")}};
 if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){})});
 render();
+})();
+
+(function setupMobileShell(){
+ var scan=document.getElementById("mobileScanBtn"),more=document.getElementById("mobileMoreBtn"),sheet=document.getElementById("mobileMore");
+ function closeMore(){if(sheet)sheet.classList.add("hidden")}
+ if(scan)scan.addEventListener("click",function(){var real=document.getElementById("scanBtn");if(real)real.click()});
+ if(more)more.addEventListener("click",function(){if(sheet)sheet.classList.remove("hidden")});
+ var close=document.getElementById("mobileMoreClose"),shade=document.getElementById("mobileMoreShade");
+ if(close)close.addEventListener("click",closeMore);
+ if(shade)shade.addEventListener("click",closeMore);
+ if(sheet)sheet.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",closeMore)});
 })();

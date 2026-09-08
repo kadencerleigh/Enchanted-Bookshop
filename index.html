@@ -13,7 +13,7 @@
 <body>
 <div class="shell">
 <aside class="side">
- <div class="brand"><div class="moon">☾</div><div><h1>Enchanted<br>Bookshop</h1><small>V4.7.14 • Mobile Bookshop Makeover</small></div></div>
+ <div class="brand"><div class="moon">☾</div><div><h1>Enchanted<br>Bookshop</h1><small>V4.7.14.1 • Mobile UI Hotfix</small></div></div>
  <div class="nav" id="nav">
   <button class="active" data-view="home">🏠 <span>Bookshop</span></button>
   <button data-view="library">📚 <span>My Library</span></button>
@@ -28,27 +28,26 @@
  <button class="scanbtn" id="scanBtn">📷 <span>Shopping Scanner</span></button>
  <div class="sidefoot">local-first • offline-ready<br>sync is optional</div>
 </aside>
-<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-  <button data-mobile-view="home" aria-label="Home"><span>🏠</span><small>Home</small></button>
-  <button data-mobile-view="library" aria-label="Library"><span>📚</span><small>Library</small></button>
-  <button data-mobile-view="browse" aria-label="Browse"><span>🌙</span><small>Browse</small></button>
-  <button data-mobile-view="scanner" class="mobile-scan" aria-label="Shopping Scanner"><span>📷</span><small>Scanner</small></button>
-  <button id="mobileMoreBtn" aria-label="More"><span>•••</span><small>More</small></button>
+<nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+ <button data-view="home">🏠<span>Home</span></button>
+ <button data-view="library">📚<span>Library</span></button>
+ <button data-view="browse">🌙<span>Browse</span></button>
+ <button id="mobileScanBtn" class="mobile-scan">📷<span>Scanner</span></button>
+ <button id="mobileMoreBtn">•••<span>More</span></button>
 </nav>
-<div id="mobileMoreSheet" class="mobile-more-sheet hidden" aria-hidden="true">
-  <button class="mobile-more-backdrop" data-mobile-more-close aria-label="Close menu"></button>
-  <div class="mobile-more-panel">
-    <div class="mobile-more-handle"></div>
-    <div class="mobile-more-head"><strong>More from your Bookshop</strong><button class="pill" data-mobile-more-close>✕</button></div>
-    <div class="mobile-more-grid">
-      <button data-mobile-view="series">🔮 <span>Series</span></button>
-      <button data-mobile-view="want">✨ <span>Want to Own</span></button>
-      <button data-mobile-view="tbr">📖 <span>TBR</span></button>
-      <button data-mobile-view="favorites">⭐ <span>Favorites</span></button>
-      <button data-mobile-view="backup">💾 <span>Backup</span></button>
-      <button data-mobile-view="sync">☁️ <span>Sync</span></button>
-    </div>
+<div class="mobile-more hidden" id="mobileMore">
+ <button class="mobile-more-shade" id="mobileMoreShade" aria-label="Close"></button>
+ <div class="mobile-more-card">
+  <div class="mobile-more-top"><b>More from your Bookshop</b><button id="mobileMoreClose">×</button></div>
+  <div class="mobile-more-grid">
+   <button data-view="series">🔮 <span>Series</span></button>
+   <button data-view="wishlist">✨ <span>Want to Own</span></button>
+   <button data-view="tbr">📖 <span>TBR</span></button>
+   <button data-view="favorites">⭐ <span>Favorites</span></button>
+   <button data-view="backup">💾 <span>Backup</span></button>
+   <button data-view="sync">☁️ <span>Sync</span></button>
   </div>
+ </div>
 </div>
 
 <main class="main">
