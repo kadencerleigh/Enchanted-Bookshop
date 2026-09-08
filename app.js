@@ -584,7 +584,7 @@ el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormDa
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.9 • The Collector’s Library</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.10 • Collector Intelligence 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
@@ -909,6 +909,52 @@ function saveRecoveredCover(book,url){
  },function(){alert("That cover source did not return a usable image.")})
 }
 
+
+// V4.10 — Collector Intelligence 2.0
+var COLLECTOR_FEATURES=[
+ ['sprayed-edges','Sprayed / painted edges',['sprayed edge','sprayed edges','painted edge','painted edges','colored edge','coloured edge']],
+ ['stenciled-edges','Stenciled edges',['stenciled edge','stencilled edge','stenciled edges','stencilled edges']],
+ ['alternate-cover','Alternate / exclusive cover',['alternate cover','alternative cover','exclusive cover','special cover','variant cover']],
+ ['signed','Signed',['signed','autographed']],
+ ['numbered','Numbered / limited copy',['numbered edition','numbered copy','limited numbered']],
+ ['bonus-content','Bonus content',['bonus chapter','bonus chapters','bonus content','exclusive chapter','exclusive content','extra chapter']],
+ ['illustrated-endpapers','Illustrated endpapers',['illustrated endpaper','illustrated endpapers','designed endpaper','designed endpapers']],
+ ['illustrations','Interior illustrations',['interior illustration','interior illustrations','illustrated edition','illustrated pages']],
+ ['foil','Foil / special jacket effects',['foil','foiled','jacket effect','jacket effects','special jacket']],
+ ['special-case','Special hardcover case',['special hard cover case','special hardcover case','case design','case stamp','case stamping']],
+ ['retailer-exclusive','Retailer exclusive',['barnes & noble exclusive','barnes and noble exclusive','target exclusive','books-a-million exclusive','bam exclusive','waterstones exclusive','retailer exclusive']],
+ ['limited-edition','Limited / deluxe edition',['limited edition','deluxe edition','collector edition','collector’s edition','collectors edition']]
+];
+function collectorFeatureMap(x){
+ var e=(x&&x.edition)||{},blob=[e.name||'',(e.special||[]).join(' '),x&&x.description||''].join(' ').toLowerCase(),out={};
+ COLLECTOR_FEATURES.forEach(function(def){if(def[2].some(function(k){return blob.indexOf(k)>=0}))out[def[0]]=def[1]});
+ return out
+}
+function collectorFeatureLabel(id){var f=COLLECTOR_FEATURES.find(function(x){return x[0]===id});return f?f[1]:id}
+function collectorIntelligenceHTML(owned,hand){
+ var own=collectorFeatureMap(owned),scan=collectorFeatureMap(hand),ids=Object.keys(scan),ownIds=Object.keys(own),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]});
+ var verdict=adds.length>=3?'Strong collector difference':adds.length?'Meaningfully different':'Different ISBN — features still need confirmation';
+ var cls=adds.length?'collector-ci-good':'collector-ci-warn';
+ return '<div class="collector-intelligence" id="collectorIntelligence">'+
+  '<div class="eyebrow">💎 COLLECTOR INTELLIGENCE 2.0</div><h3>What is actually different?</h3>'+
+  '<div class="collector-ci-verdict '+cls+'"><b>Collector verdict:</b> <span id="collectorVerdict">'+esc(verdict)+'</span></div>'+
+  '<div class="collector-ci-cols"><div><b>✨ Adds to your collection</b><div id="collectorAdds">'+(adds.length?adds.map(function(id){return '<span class="collector-feature new">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):'<span class="tiny muted">No extra features confirmed yet.</span>')+'</div></div>'+
+  '<div><b>📚 Already on your copy</b><div id="collectorShared">'+(shared.length?shared.map(function(id){return '<span class="collector-feature shared">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):(ownIds.length?'<span class="tiny muted">The scanned edition has not confirmed any overlapping features yet.</span>':'<span class="tiny muted">No collector features saved on your copy.</span>'))+'</div></div></div>'+
+  '<details class="collector-confirm"><summary>🔎 Confirm features on the edition in your hand</summary><p class="tiny">Public metadata can miss collector details. Check only what you can confirm from the book/listing. These choices stay temporary unless you add this edition.</p><div class="collector-checks">'+COLLECTOR_FEATURES.map(function(def){return '<label><input type="checkbox" class="collectorHandFeature" value="'+esc(def[0])+'" '+(scan[def[0]]?'checked':'')+'> '+esc(def[1])+'</label>'}).join('')+'</div></details>'+
+  '<div class="tiny collector-ci-note">Confidence: the ISBN difference is confirmed. Feature differences are based only on saved, detected, or personally confirmed details — the Bookshop will not invent collector features.</div></div>'
+}
+function wireCollectorIntelligence(owned,hand){
+ var checks=[].slice.call(document.querySelectorAll('.collectorHandFeature'));if(!checks.length)return;
+ function refresh(){var own=collectorFeatureMap(owned),chosen={};checks.forEach(function(c){if(c.checked)chosen[c.value]=collectorFeatureLabel(c.value)});var ids=Object.keys(chosen),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]});
+  var a=el('#collectorAdds'),sh=el('#collectorShared'),v=el('#collectorVerdict');
+  if(a)a.innerHTML=adds.length?adds.map(function(id){return '<span class="collector-feature new">'+esc(chosen[id])+'</span>'}).join(''):'<span class="tiny muted">No extra features confirmed yet.</span>';
+  if(sh)sh.innerHTML=shared.length?shared.map(function(id){return '<span class="collector-feature shared">'+esc(chosen[id])+'</span>'}).join(''):'<span class="tiny muted">No confirmed overlap from the edition in your hand.</span>';
+  if(v)v.textContent=adds.length>=3?'Strong collector difference':adds.length?'Meaningfully different':'Different ISBN — features still need confirmation';
+  hand.edition=hand.edition||{};hand.edition.special=ids.map(function(id){return chosen[id]});
+ }
+ checks.forEach(function(c){c.onchange=refresh});refresh()
+}
+
 function shoppingEditionLines(x){
  var e=(x&&x.edition)||{},lines=[];
  if(e.name)lines.push("<b>Edition:</b> "+esc(e.name));
@@ -990,10 +1036,12 @@ function showMatch(f,source){
     '<h3>💎 DIFFERENT EDITION</h3>'+
     '<div class="shop-verdict">You own this story, but <b>not this ISBN</b>. This may be worth buying if you want another edition.</div>'+
     '<div class="shop-compare">'+shoppingCover(strictSame,"Edition you own")+shoppingCover(f,"Edition in your hand")+'</div>'+
-    '<div class="shop-confidence"><b>Edition confidence:</b> HIGH that it is a different edition • <b>special/collector features are NOT confirmed automatically</b></div>'+
+    '<div class="shop-confidence"><b>Edition confidence:</b> HIGH that it is a different edition • collector features are compared only when detected or confirmed</div>'+
+    collectorIntelligenceHTML(strictSame,f)+
     shoppingSeriesSignal(f)+
     '<div class="actions"><button class="primary" id="addFound">✨ Add this edition</button>'+shoppingKeepBrowsingButton()+'</div>'+
    '</div>';
+  wireCollectorIntelligence(strictSame,f);
   el("#addFound").onclick=function(){prefill(f)};
   wireKeepBrowsing();
   return
@@ -1030,7 +1078,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.8.4",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-8-4-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.10",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-10-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
