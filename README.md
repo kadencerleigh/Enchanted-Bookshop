@@ -50,3 +50,6 @@ series volume and shows owned/lineup progress.
 3. Confirm red EXACT ISBN result and side-by-side comparison.
 4. Tap Keep Browsing and confirm scanner closes.
 5. Then test a book you do not own if available.
+
+## V4.8.2 — Cover Rescue 2.0
+Adds user-supplied physical-cover photos with compression, preview, explicit confirmation, safe cover-only mutation, and backup/cloud compatibility through the existing book record.

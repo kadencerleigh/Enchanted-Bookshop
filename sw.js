@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-8-1-collector-rescue";
+const CACHE="enchanted-bookshop-v4-8-2-cover-rescue-2";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.8.1",
- "./app.js?v=4.8.1",
- "./manifest.json?v=4.8.1",
- "./icon-192.png?v=4.8.1",
+ "./styles.css?v=4.8.2",
+ "./app.js?v=4.8.2",
+ "./manifest.json?v=4.8.2",
+ "./icon-192.png?v=4.8.2",
  "./icon-512.png"
 ];
 

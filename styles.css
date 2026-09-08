@@ -406,3 +406,12 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .cover-candidate img{display:block;width:100%;max-width:145px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;margin:0 auto 7px}
 .cover-candidate span{display:block;font-size:11px;line-height:1.35}
 @media(max-width:520px){.cover-candidate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V4.8.2 — Cover Rescue 2.0 */
+.own-cover-rescue{margin-top:14px;padding-top:14px;border-top:1px solid rgba(224,191,119,.18)}
+.own-cover-rescue h4{margin:4px 0}
+.own-cover-file{display:none}
+.own-cover-confirm{display:grid;grid-template-columns:minmax(90px,130px) 1fr;gap:12px;align-items:start;margin-top:12px;padding:10px;border:1px solid rgba(224,191,119,.2);border-radius:13px;background:rgba(0,0,0,.15)}
+.own-cover-confirm img{display:block;width:100%;max-height:210px;object-fit:contain;border-radius:8px;background:rgba(0,0,0,.2)}
+.own-cover-confirm .primary,.own-cover-confirm .pill{margin:4px 6px 0 0}
+@media(max-width:420px){.own-cover-confirm{grid-template-columns:105px 1fr;gap:9px}.own-cover-confirm .primary,.own-cover-confirm .pill{width:100%;margin:5px 0 0}}

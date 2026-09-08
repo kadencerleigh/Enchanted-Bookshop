@@ -388,10 +388,59 @@ async function collectEditorCoverCandidates(book){
  var tested=await Promise.all(all.slice(0,12).map(async function(c){c.ok=await imageLoads(c.url);return c}));
  return tested.filter(function(c){return c.ok}).slice(0,8)
 }
+function customCoverControlsHTML(){
+ return '<div class="own-cover-rescue"><div class="eyebrow">📷 Your physical copy</div><h4>Still not seeing the right edition?</h4><p class="tiny muted">Choose or take a photo of your own cover. Nothing changes until you confirm it.</p><input type="file" id="ownCoverFile" accept="image/*" class="own-cover-file"><button type="button" class="pill" id="ownCoverBtn">📷 Use My Own Cover</button><div id="ownCoverPreview"></div></div>'
+}
+function compressCoverPhoto(file){
+ return new Promise(function(resolve,reject){
+  if(!file||!String(file.type||"").startsWith("image/")){reject(Error("Choose an image file."));return}
+  var reader=new FileReader();
+  reader.onerror=function(){reject(Error("Could not read that image."))};
+  reader.onload=function(){
+   var img=new Image();
+   img.onerror=function(){reject(Error("Could not open that image."))};
+   img.onload=function(){
+    try{
+     var maxW=720,maxH=1080,scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+     var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+     var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,h);
+     resolve(canvas.toDataURL("image/jpeg",0.76))
+    }catch(e){reject(e)}
+   };
+   img.src=reader.result
+  };
+  reader.readAsDataURL(file)
+ })
+}
+function saveUserCoverPhoto(book,dataUrl,panel){
+ var before=JSON.parse(JSON.stringify(book));
+ book.cover=dataUrl;book.coverSource="User photo of physical copy";book.updatedAt=now();
+ function stripCover(x){var y=JSON.parse(JSON.stringify(x));delete y.cover;delete y.coverSource;delete y.updatedAt;return y}
+ if(JSON.stringify(stripCover(before))!==JSON.stringify(stripCover(book))){Object.keys(book).forEach(function(k){delete book[k]});Object.assign(book,before);alert("Cover change was rolled back because another field changed unexpectedly.");return}
+ try{save()}catch(e){Object.keys(book).forEach(function(k){delete book[k]});Object.assign(book,before);alert("That photo was too large to save safely. Nothing was changed.");return}
+ render();
+ if(panel)panel.innerHTML='<div class="guardian green"><h3>✅ Your cover photo is saved</h3><div class="muted">Only the cover changed. Your physical-copy photo is now the cover for this cataloged copy.</div></div>'
+}
+function wireOwnCoverRescue(book,panel){
+ var input=panel&&panel.querySelector("#ownCoverFile"),btn=panel&&panel.querySelector("#ownCoverBtn"),preview=panel&&panel.querySelector("#ownCoverPreview");
+ if(!input||!btn)return;
+ btn.onclick=function(){input.click()};
+ input.onchange=async function(){
+  var file=input.files&&input.files[0];if(!file)return;
+  btn.disabled=true;btn.textContent="📷 Preparing photo...";
+  try{
+   var dataUrl=await compressCoverPhoto(file);
+   preview.innerHTML='<div class="own-cover-confirm"><img src="'+dataUrl+'" alt="Your cover photo preview"><div><b>Use this as your copy\'s cover?</b><p class="tiny muted">This photo is stored with this book and can be included in your backup/cloud sync.</p><button type="button" class="primary" id="confirmOwnCover">Use This Photo</button><button type="button" class="pill" id="cancelOwnCover">Choose Another</button></div></div>';
+   preview.querySelector("#confirmOwnCover").onclick=function(){saveUserCoverPhoto(book,dataUrl,panel)};
+   preview.querySelector("#cancelOwnCover").onclick=function(){input.value="";preview.innerHTML="";input.click()}
+  }catch(e){console.warn("Own-cover photo failed",e);alert("I couldn't prepare that photo. Nothing was changed.")}
+  finally{btn.disabled=false;btn.textContent="📷 Use My Own Cover"}
+ }
+}
 function renderCoverCandidatePicker(book,candidates){
  var panel=el("#coverCandidatePanel");if(!panel)return;
- if(!candidates.length){panel.innerHTML='<div class="guardian purple"><h3>🕯️ No usable cover candidates yet</h3><div class="muted">Nothing was changed. Your saved book details are safe.</div></div>';return}
- panel.innerHTML='<div class="cover-picker"><div class="eyebrow">✨ Collector Rescue</div><h3>Which cover matches your copy?</h3><p class="tiny muted">Exact-ISBN matches are labeled. Same-work covers are only suggestions — you choose before anything changes.</p><div class="cover-candidate-grid">'+candidates.map(function(c,i){return '<button type="button" class="cover-candidate" data-cover-i="'+i+'"><img src="'+esc(c.url)+'" alt="Cover candidate"><span><b>'+esc(c.label)+'</b><br>'+esc(c.source)+'</span></button>'}).join("")+'</div><button type="button" class="pill" id="noneCoverMatch">None match</button></div>';
+ if(!candidates.length){panel.innerHTML='<div class="cover-picker"><div class="guardian purple"><h3>🕯️ No usable online cover candidates yet</h3><div class="muted">Nothing was changed. Your saved book details are safe.</div></div>'+customCoverControlsHTML()+'</div>';wireOwnCoverRescue(book,panel);return}
+ panel.innerHTML='<div class="cover-picker"><div class="eyebrow">✨ Cover Rescue 2.0</div><h3>Which cover matches your copy?</h3><p class="tiny muted">Exact-ISBN matches are labeled. Same-work covers are only suggestions — you choose before anything changes.</p><div class="cover-candidate-grid">'+candidates.map(function(c,i){return '<button type="button" class="cover-candidate" data-cover-i="'+i+'"><img src="'+esc(c.url)+'" alt="Cover candidate"><span><b>'+esc(c.label)+'</b><br>'+esc(c.source)+'</span></button>'}).join("")+'</div><button type="button" class="pill" id="noneCoverMatch">None match</button>'+customCoverControlsHTML()+'</div>';
  panel.querySelectorAll("[data-cover-i]").forEach(function(btn){btn.onclick=function(){
   var c=candidates[+btn.getAttribute("data-cover-i")];if(!c)return;
   if(!c.exact&&!confirm("This looks like the same work, but the source does not confirm your exact ISBN. Use this cover for your copy?"))return;
@@ -401,7 +450,8 @@ function renderCoverCandidatePicker(book,candidates){
   if(JSON.stringify(stripCover(before))!==JSON.stringify(stripCover(book))){Object.keys(book).forEach(function(k){delete book[k]});Object.assign(book,before);alert("Cover change was rolled back because another field changed unexpectedly.");return}
   save();render();panel.innerHTML='<div class="guardian green"><h3>✅ Cover saved</h3><div class="muted">Only the cover fields changed. '+esc(c.source)+'</div></div>'
  }});
- var none=el("#noneCoverMatch");if(none)none.onclick=function(){panel.innerHTML='<div class="guardian purple"><h3>🕯️ No cover selected</h3><div class="muted">Nothing was changed.</div></div>'}
+ var none=el("#noneCoverMatch");if(none)none.onclick=function(){panel.innerHTML='<div class="guardian purple"><h3>🕯️ No online cover selected</h3><div class="muted">Nothing was changed. You can reopen Find Missing Cover anytime.</div></div>'};
+ wireOwnCoverRescue(book,panel)
 }
 async function showCoverCandidatesFromEditor(book,button){
  var panel=el("#coverCandidatePanel");if(panel)panel.innerHTML='<div class="syncstatus">✨ Searching exact ISBN + title/author cover candidates...</div>';
@@ -485,12 +535,12 @@ if(repairBtn){
  }
 }
 
-el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:uniqText([].concat(f.has("connectionBirthday")?["Published on my birthday"]:[],String(f.get("copyMemories")||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean))),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
+el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",coverSource:b.coverSource||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:uniqText([].concat(f.has("connectionBirthday")?["Published on my birthday"]:[],String(f.get("copyMemories")||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean))),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
  if(b.id)el("#deleteBtn").onclick=function(){if(confirm("Remove this copy from your bookshop?")){var x=state.books.find(function(x){return x.id===b.id});x.deleted=true;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.1 • Collector Rescue</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.8.2 • Cover Rescue 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){
