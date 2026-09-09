@@ -873,8 +873,9 @@ function detailSeriesContext(series,seriesNo){
 }
 function openCollectorBook(b){
  if(!b)return;
- var copies=workCopiesFor(b),groups=editionGroupsFor(b),intel=getWorkIntelligence(b.title,b.author||'')||{},genres=uniqText([].concat(intel.genres||[],b.genres||[])),tags=uniqText([].concat(intel.tags||[],b.tags||[])),series=intel.series||b.series||'',seriesNo=intel.seriesNo||b.seriesNo||'',e=b.edition||{},latest=detailLatestJournal(b);
- var collectorCallout=e.name||((e.special||[])[0])||'',pages=+e.pages||0,status=detailStatusLabel(b.status),seriesContext=detailSeriesContext(series,seriesNo);
+ repairV426WorkOnlyPlaceholder(b);
+ var copies=workCopiesFor(b),groups=editionGroupsFor(b),intel=getWorkIntelligence(b.title,b.author||'')||{},genres=uniqText([].concat(intel.genres||[],b.genres||[])),tags=uniqText([].concat(intel.tags||[],b.tags||[])),series=intel.series||b.series||'',seriesNo=intel.seriesNo||b.seriesNo||'',e=b.edition||{},wm=b.workMetadata||{},latest=detailLatestJournal(b);
+ var collectorCallout=e.name||((e.special||[])[0])||'',pages=+(e.pages||wm.pages)||0,status=detailStatusLabel(b.status),seriesContext=detailSeriesContext(series,seriesNo);
  var action=b.status==='currently-reading'?'🕯️ Log Reading':b.status==='read'?'↻ Start a Reread':b.status==='rereading'?'🕯️ Log Reading':'📖 Start Reading';
  var rating=b.rating?stars(b.rating)+' '+b.rating+'/5':'Not rated';
  var html='<div class="book-detail-v424">'+
@@ -891,11 +892,11 @@ function openCollectorBook(b){
  '<div><span>Format</span><b>'+esc(e.format||'Unknown')+'</b></div>'+
  '<div><span>Status</span><b>'+esc(status)+'</b></div><div><span>Rating</span><b>'+rating+'</b></div></div></section>'+
  (latest&&(latest.reaction||latest.mood||latest.date)?'<section class="detail-memory"><div class="eyebrow">💬 LATEST READING MEMORY</div>'+(latest.reaction?'<blockquote>'+esc(latest.reaction)+'</blockquote>':'')+'<div class="muted">'+esc([latest.date,latest.mood].filter(Boolean).join(' • '))+'</div></section>':'')+
- '<div class="collector-section-head detail-editions-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">';
- groups.forEach(function(g,gi){var x=g[0],xe=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(xe.name||xe.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(xe.isbn?'<span class="collector-isbn">'+esc(cleanISBN(xe.isbn))+'</span>':'')+'</div>'+(Array.isArray(xe.special)&&xe.special.length?'<div class="collector-features">'+collectorChips(xe.special)+'</div>':'')+'<div class="collector-copies">';
+ (b.edition?'<div class="collector-section-head detail-editions-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">':'<section class="detail-memory"><div class="eyebrow">📖 WORK SAVED</div><h3>No physical copy yet</h3><p class="muted">This story is saved in your Bookshop, but it is not marked as owned. No edition or physical copy has been created.</p></section>');
+ if(b.edition)groups.forEach(function(g,gi){var x=g[0],xe=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(xe.name||xe.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(xe.isbn?'<span class="collector-isbn">'+esc(cleanISBN(xe.isbn))+'</span>':'')+'</div>'+(Array.isArray(xe.special)&&xe.special.length?'<div class="collector-features">'+collectorChips(xe.special)+'</div>':'')+'<div class="collector-copies">';
  g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory connection-memory-list">'+connectionDisplay(c.copyConnections).map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
  html+='</div></section>'});
- html+='</div><div class="tiny collector-safety">V4.24 changes presentation and quick actions only. Your Work → Edition → Copy data model remains the source of truth.</div></div>';
+ if(b.edition)html+='</div><div class="tiny collector-safety">V4.24 changes presentation and quick actions only. Your Work → Edition → Copy data model remains the source of truth.</div>';html+='</div>';
  el('#modalBody').innerHTML=html;el('#modal').classList.remove('hidden');
 
  var edit=el('#detailEdit');if(edit)edit.onclick=function(){openBook(b)};
@@ -963,6 +964,19 @@ function findExistingWork(f){
  if(exact)return exact;
  return visible().find(function(b){return norm(b.title)===norm(f.title)&&(!f.author||!b.author||norm(b.author)===norm(f.author))})||null
 }
+
+function repairV426WorkOnlyPlaceholder(b){
+ if(!b||b.owned===true||!b.edition)return false;
+ var e=b.edition||{};
+ var publicDiscovery=b.intelligence===true&&(b.intelligenceSource==="Google Books"||b.intelligenceSource==="Open Library"||b.intelligenceSource==="Public book metadata");
+ var noEditionIdentity=!String(e.isbn||"").trim()&&!String(e.format||"").trim()&&!String(e.name||"").trim()&&!String(e.printing||"").trim()&&!(Array.isArray(e.special)&&e.special.length);
+ if(publicDiscovery&&noEditionIdentity){
+  b.workMetadata={publisher:e.publisher||"",publicationDate:e.publicationDate||"",pages:e.pages||""};
+  b.edition=null;b.updatedAt=now();save();return true
+ }
+ return false
+}
+
 function saveDiscoveredWork(f,mode){
  var existing=findExistingWork(f),n;
  if(existing){
@@ -971,7 +985,7 @@ function saveDiscoveredWork(f,mode){
   if(mode==="own"||mode==="both")n.wantOwn=true;
   n.updatedAt=now();
  }else{
-  n={id:uid(),workId:uid(),title:f.title||"",author:f.author||"",cover:f.cover||"",coverSource:f.cover?(f.source||"Public metadata"):"",genres:uniqText(f.genres||[]),tags:[],series:f.series||"",seriesNo:f.seriesNo||"",status:(mode==="read"||mode==="both")?"want-to-read":"",owned:false,wantOwn:(mode==="own"||mode==="both"),rating:0,favorite:false,spice:0,spiceConfidence:"unknown",intelligence:true,intelligenceSource:f.source||"Public book metadata",readDateUnknown:false,finishedDate:"",copyConnections:[],readingJournal:[],readingProgress:{},notes:"",edition:{isbn:"",name:"",format:"",publisher:(f.edition&&f.edition.publisher)||"",publicationDate:(f.edition&&f.edition.publicationDate)||"",pages:(f.edition&&f.edition.pages)||"",printing:"",special:[]},updatedAt:now(),deleted:false};
+  n={id:uid(),workId:uid(),title:f.title||"",author:f.author||"",cover:f.cover||"",coverSource:f.cover?(f.source||"Public metadata"):"",genres:uniqText(f.genres||[]),tags:[],series:f.series||"",seriesNo:f.seriesNo||"",status:(mode==="read"||mode==="both")?"want-to-read":"",owned:false,wantOwn:(mode==="own"||mode==="both"),rating:0,favorite:false,spice:0,spiceConfidence:"unknown",intelligence:true,intelligenceSource:f.source||"Public book metadata",readDateUnknown:false,finishedDate:"",copyConnections:[],readingJournal:[],readingProgress:{},notes:"",edition:null,workMetadata:{publisher:(f.edition&&f.edition.publisher)||"",publicationDate:(f.edition&&f.edition.publicationDate)||"",pages:(f.edition&&f.edition.pages)||""},updatedAt:now(),deleted:false};
   state.books.push(n)
  }
  learnWorkIntelligence(n);save();autoSyncMaybe();return n

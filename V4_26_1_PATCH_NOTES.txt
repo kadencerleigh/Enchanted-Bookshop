@@ -1,0 +1,7 @@
+V4.26.1 — Ownership Distinction Patch
+• No-ISBN discovery creates a Work only.
+• Want to Read / Want to Own do not manufacture a physical copy.
+• Existing V4.26 public-discovery placeholder records auto-repair when opened.
+• Public pages/publisher/date remain as work metadata.
+• Genuine owned editions/copies remain untouched.
+• No Supabase SQL. Do NOT clear site data.
