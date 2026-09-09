@@ -347,11 +347,55 @@ var GENRES=["Fantasy","Romantasy","Romance","Dark Romance","Mystery","Thriller",
 function genreField(selected){selected=selected||[];var known=GENRES.slice();selected.forEach(function(g){if(g&&known.indexOf(g)<0)known.push(g)});return '<div class="field full genre-picker"><label>Genres</label><div class="genre-options">'+known.map(function(g){return '<label class="genre-chip"><input type="checkbox" name="genres" value="'+esc(g)+'" '+(selected.indexOf(g)>=0?"checked":"")+'> <span>'+esc(g)+'</span></label>'}).join("")+'</div><label class="custom-genre-label">Other / Custom Genre</label><input name="customGenre" placeholder="Add another genre (optional)"></div>';}
 function isExtraType(type){var t=norm(type);return t.indexOf("novella")>=0||t.indexOf("prequel")>=0||t.indexOf("companion")>=0||t.indexOf("bonus")>=0||t.indexOf("anthology")>=0||t.indexOf("extra")>=0;}
 function checkbox(name,label,checked){return'<div class="field"><label style="text-transform:none"><input type="checkbox" name="'+name+'" '+(checked?"checked":"")+'> '+label+'</label></div>'}
-function copyConnectionsField(items){
+function parseCopyConnections(items){
  items=uniqText(items||[]);
- var birthday=items.indexOf("Published on my birthday")>=0;
- var custom=items.filter(function(x){return x!=="Published on my birthday"});
- return '<div class="field full copy-connections"><label>✨ Bookish Connections / Copy Memories</label><label class="memory-preset"><input type="checkbox" name="connectionBirthday" '+(birthday?"checked":"")+'> 🎂 Published on my birthday</label><textarea name="copyMemories" placeholder="One memory per line — bought on a trip, gift from someone special, found at a favorite bookstore...">'+esc(custom.join("\n"))+'</textarea><div class="tiny muted">These belong to this physical copy, so duplicate editions can have different stories.</div></div>'
+ var o={birthday:false,sentimental:false,trip:false,signedInPerson:false,childhood:false,firstAuthor:false,boughtAt:"",boughtDate:"",giftedBy:"",custom:[]};
+ items.forEach(function(x){
+  if(x==="Published on my birthday")o.birthday=true;
+  else if(x==="Sentimental copy")o.sentimental=true;
+  else if(x==="Bought on a trip")o.trip=true;
+  else if(x==="Signed in person")o.signedInPerson=true;
+  else if(x==="Childhood copy")o.childhood=true;
+  else if(x==="First book by this author")o.firstAuthor=true;
+  else if(x.indexOf("Bought at: ")===0)o.boughtAt=x.slice(11);
+  else if(x.indexOf("Bought on: ")===0)o.boughtDate=x.slice(11);
+  else if(x.indexOf("Gifted by: ")===0)o.giftedBy=x.slice(11);
+  else o.custom.push(x);
+ });return o;
+}
+function copyConnectionsField(items){
+ var m=parseCopyConnections(items);
+ return '<div class="field full copy-connections"><div class="connection-head"><div><div class="eyebrow">BOOKISH CONNECTIONS 2.0</div><label>✨ The story of this copy</label><div class="tiny muted">Memories live on this physical copy — not every edition of the book.</div></div></div>'+
+ '<div class="connection-presets">'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionBirthday" '+(m.birthday?"checked":"")+'> 🎂 Published on my birthday</label>'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionSentimental" '+(m.sentimental?"checked":"")+'> 💗 Sentimental copy</label>'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionTrip" '+(m.trip?"checked":"")+'> 🧳 Bought on a trip</label>'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionSigned" '+(m.signedInPerson?"checked":"")+'> ✍️ Signed in person</label>'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionChildhood" '+(m.childhood?"checked":"")+'> 🧸 Childhood copy</label>'+
+ '<label class="memory-preset"><input type="checkbox" name="connectionFirstAuthor" '+(m.firstAuthor?"checked":"")+'> ✨ First book by this author</label></div>'+
+ '<div class="connection-details"><div class="field"><label>🛍️ Bought at / found at</label><input name="connectionBoughtAt" placeholder="Bookstore, event, town..." value="'+esc(m.boughtAt)+'"></div>'+
+ '<div class="field"><label>📅 Bought on</label><input type="date" name="connectionBoughtDate" value="'+esc(m.boughtDate)+'"></div>'+
+ '<div class="field full"><label>🎁 Gifted by</label><input name="connectionGiftedBy" placeholder="Who gave this copy to you?" value="'+esc(m.giftedBy)+'"></div></div>'+
+ '<label class="connection-notes-label">💭 Copy memories</label><textarea name="copyMemories" placeholder="One memory per line — why this copy matters, where you found it, who you were with...">'+esc(m.custom.join("\n"))+'</textarea>'+
+ '<div class="tiny muted">Saved with this copy and included in your normal backup + sync.</div></div>'
+}
+function buildCopyConnections(f){
+ var a=[];
+ if(f.has("connectionBirthday"))a.push("Published on my birthday");
+ if(f.has("connectionSentimental"))a.push("Sentimental copy");
+ if(f.has("connectionTrip"))a.push("Bought on a trip");
+ if(f.has("connectionSigned"))a.push("Signed in person");
+ if(f.has("connectionChildhood"))a.push("Childhood copy");
+ if(f.has("connectionFirstAuthor"))a.push("First book by this author");
+ var at=String(f.get("connectionBoughtAt")||"").trim(),dt=String(f.get("connectionBoughtDate")||"").trim(),gb=String(f.get("connectionGiftedBy")||"").trim();
+ if(at)a.push("Bought at: "+at);if(dt)a.push("Bought on: "+dt);if(gb)a.push("Gifted by: "+gb);
+ return uniqText(a.concat(String(f.get("copyMemories")||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean)));
+}
+function connectionDisplay(items){
+ var m=parseCopyConnections(items),a=[];
+ if(m.birthday)a.push("🎂 Published on my birthday");if(m.sentimental)a.push("💗 Sentimental copy");if(m.trip)a.push("🧳 Bought on a trip");if(m.signedInPerson)a.push("✍️ Signed in person");if(m.childhood)a.push("🧸 Childhood copy");if(m.firstAuthor)a.push("✨ First book by this author");
+ if(m.boughtAt)a.push("🛍️ "+m.boughtAt);if(m.boughtDate)a.push("📅 "+m.boughtDate);if(m.giftedBy)a.push("🎁 Gifted by "+m.giftedBy);m.custom.forEach(function(x){a.push("💭 "+x)});
+ return a;
 }
 async function enrichManualBookCoverOnly(book){
  try{
@@ -557,7 +601,7 @@ function openCollectorBook(b){
  html+='<div class="collector-work-strip"><div><span>Reading</span><b>'+esc(String(b.status||'').replace(/-/g,' '))+'</b></div><div><span>Rating</span><b>'+(b.rating?stars(b.rating):'Not rated')+'</b></div><div><span>Spice</span><b>'+spice(b.spice||0)+'</b></div><div><span>Collection</span><b>'+copies.length+' cop'+(copies.length===1?'y':'ies')+' • '+groups.length+' edition'+(groups.length===1?'':'s')+'</b></div></div>';
  html+='<div class="collector-section-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">';
  groups.forEach(function(g,gi){var x=g[0],e=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(e.name||e.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(e.isbn?'<span class="collector-isbn">'+esc(cleanISBN(e.isbn))+'</span>':'')+'</div>'+(Array.isArray(e.special)&&e.special.length?'<div class="collector-features">'+collectorChips(e.special)+'</div>':'')+'<div class="collector-copies">';
- g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory">✨ '+esc(c.copyConnections.join(' • '))+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
+ g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory connection-memory-list">'+connectionDisplay(c.copyConnections).map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
  html+='</div></section>'});
  html+='</div><div class="tiny collector-safety">V4.9 organizes your existing records into Work → Edition → Copy views without rewriting your saved library data.</div>';
  el('#modalBody').innerHTML=html;el('#modal').classList.remove('hidden');
@@ -589,12 +633,12 @@ if(repairBtn){
  }
 }
 
-el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",coverSource:b.coverSource||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:uniqText([].concat(f.has("connectionBirthday")?["Published on my birthday"]:[],String(f.get("copyMemories")||"").split(/\n+/).map(function(x){return x.trim()}).filter(Boolean))),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
+el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",coverSource:b.coverSource||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:buildCopyConnections(f),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
  if(b.id)el("#deleteBtn").onclick=function(){if(confirm("Remove this copy from your bookshop?")){var x=state.books.find(function(x){return x.id===b.id});x.deleted=true;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
- stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.11 • Library View Switcher</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
+ stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.12 • Bookish Connections 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
  el("#modal").classList.remove("hidden");el("#startCam").onclick=startScanner;el("#stopCam").onclick=stopScanner;el("#lookupBtn").onclick=lookupISBN;el("#isbnInput").onkeydown=function(e){if(e.key==="Enter")lookupISBN()}
 }
 async function startScanner(){

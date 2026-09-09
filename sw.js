@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-11-library-view-switcher";
+const CACHE="enchanted-bookshop-v4-12-bookish-connections-2";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.11.0",
- "./app.js?v=4.11.0",
- "./manifest.json?v=4.11.0",
- "./icon-192.png?v=4.11.0",
+ "./styles.css?v=4.12.0",
+ "./app.js?v=4.12.0",
+ "./manifest.json?v=4.12.0",
+ "./icon-192.png?v=4.12.0",
  "./icon-512.png"
 ];
 
