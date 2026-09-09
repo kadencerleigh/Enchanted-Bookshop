@@ -1255,3 +1255,17 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
  .detail-hero .collector-title{font-size:31px}.detail-hero .collector-author{font-size:17px}
 }
 @media(max-width:390px){.detail-glance-grid{grid-template-columns:1fr}}
+
+
+/* V4.25.2 — Desktop Sidebar Scroll Fix
+   Long navigation menus must remain reachable on shorter desktop windows. */
+@media (min-width:821px){
+  .side{
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-width:thin;
+    overscroll-behavior:contain;
+  }
+  .side .nav{flex:0 0 auto}
+  .sidefoot{flex-shrink:0}
+}
