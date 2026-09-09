@@ -276,7 +276,7 @@ function series(){
  seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){if(!map[s.name])map[s.name]=[]});
  var names=Object.keys(map).sort(),totalSeries=names.length,completeSeries=0,totalMissing=0,totalNeedCatalog=0;
  names.forEach(function(name){var a=map[name],cat=getSeries(name);if(!cat)return;(cat.books||[]).forEach(function(x){var st=seriesState(x,a);if(st==="missing")totalMissing++;if(st==="owned")totalNeedCatalog++});if(cat.books&&cat.books.length&&cat.books.every(function(x){return ownedSeriesEntry(x,a)}))completeSeries++});
- var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.27.7 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
+ var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.27.8 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
  if(!names.length)return hero+'<div class="empty series-discovery-empty"><b>No series saved yet.</b><div class="muted">Search by series name and optional author. Nothing becomes owned, Want to Read, or Want to Own unless you explicitly choose that elsewhere.</div></div>';
  return hero+'<div class="series-brain-grid">'+names.map(function(name){
   var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
@@ -307,20 +307,12 @@ function canonicalSeriesTitle(title,seriesName){
 function guessSeriesType(title,no){var t=norm(title);if(/anthology|collection|collected|stories|omnibus/.test(t))return "Anthology / Collection";if(String(no).indexOf(".")>=0||/novella|prequel|companion|short story|bonus/.test(t))return "Novella / Extra";return "Main novel"}
 function seriesCandidateScore(x,name){var raw=String(x.title||""),clean=canonicalSeriesTitle(raw,name),score=0;if(clean===raw.trim())score+=4;if(x.number)score+=3;if(x.source==="Your library")score+=5;if(!looksLikeEditionBundle(raw))score+=2;score-=Math.max(0,raw.length-clean.length)/20;return score}
 function uniqueSeriesCandidates(items,name){
- var map={};
- (items||[]).forEach(function(x){
-  if(!x||!x.title)return;
-  var k=norm(x.title),cur=map[k];
-  if(!cur){map[k]=x;return}
-  var curLocal=cur.source==="Your library",newLocal=x.source==="Your library";
-  var curNum=String(cur.number||"").trim(),newNum=String(x.number||"").trim();
-  if(newLocal&&!curLocal){map[k]=Object.assign({},cur,x);return}
-  if(!curLocal&&!newLocal&&newNum&&!curNum){map[k]=Object.assign({},cur,x);return}
-  map[k]=Object.assign({},x,cur);
-  if(newNum&&!curNum)map[k].number=newNum;
-  if(newLocal)map[k].source="Your library"
+ var groups={};(items||[]).forEach(function(x){if(!x||!x.title)return;var clean=canonicalSeriesTitle(x.title,name),no=String(x.number||"").trim(),type=guessSeriesType(clean,no);x=Object.assign({},x,{title:clean,type:type});var k=norm(clean);if(!k)return;
+  /* Same numbered main novel with a decorated API title is the same work. */
+  var key=(no&&type==="Main novel")?"main#"+no:k;
+  var old=groups[key];if(!old||seriesCandidateScore(x,name)>seriesCandidateScore(old,name))groups[key]=x;
  });
- return Object.keys(map).map(function(k){return map[k]})
+ return Object.keys(groups).map(function(k){return groups[k]}).sort(function(a,b){var an=parseFloat(a.number),bn=parseFloat(b.number);if(!isNaN(an)&&!isNaN(bn)){if(an!==bn)return an-bn;var rank={"Main novel":0,"Novella / Extra":1,"Anthology / Collection":2};return(rank[a.type]||9)-(rank[b.type]||9)||a.title.localeCompare(b.title)}if(!isNaN(an))return-1;if(!isNaN(bn))return 1;return a.title.localeCompare(b.title)})
 }
 async function googleBooksSearch(q){
  try{
@@ -416,7 +408,6 @@ async function openLibrarySeriesCandidates(name,seedAuthors,diag){
  function authorMatches(d){
   if(!seedAuthors||!seedAuthors.length)return true;
   var aa=(d.author_name||d.author||[]);if(!Array.isArray(aa))aa=[aa];
-  if(!aa.length)return true; /* quoted series query is already the primary evidence */
   return aa.some(function(a){return seedAuthors.some(function(seed){return norm(a)===norm(seed)||norm(a).indexOf(norm(seed))>=0||norm(seed).indexOf(norm(a))>=0})})
  }
  function consumeStrict(docs){
@@ -428,20 +419,21 @@ async function openLibrarySeriesCandidates(name,seedAuthors,diag){
   })
  }
  function consumeExactSeriesQuery(docs){
+  var focused=(docs||[]).length>0&&(docs||[]).length<=12;
   (docs||[]).forEach(function(d){
    var dk=(d.key||"")+"|"+norm(d.title||"");
-   if(seenDoc[dk]||!d.title||!authorMatches(d))return;
+   if(seenDoc[dk]||!d.title)return;
    var ss=Array.isArray(d.series)?d.series:(d.series?[d.series]:[]);
    var matched=ss.some(function(label){return seriesLabelMatches(label,name)});
-   /* The exact quoted series query itself is membership evidence when OL
-      returns a small focused set, even if its docs omit the series field. */
-   var focused=(docs||[]).length>0&&(docs||[]).length<=12;
+   /* Exact quoted series query + small focused result set is direct membership
+      evidence. Do not discard a legitimate series result just because OL omitted
+      or inconsistently formatted author_name on that document. */
    if(!matched&&!focused)return;
    var raw=matched?String(ss.filter(function(label){return seriesLabelMatches(label,name)})[0]||""):"";
    var no=seriesNumberFromText(raw,name)||seriesNumberFromText((d.title||"")+" "+(d.subtitle||""),name);
    if(!no&&norm(d.title||"")===norm(name))no="1";
    seenDoc[dk]=1;
-   out.push({number:no,title:d.title||"",subtitle:d.subtitle||"",seriesLabel:raw||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:(d.author_name||[])})
+   out.push({number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:(d.author_name||[])})
   })
  }
 
@@ -467,16 +459,13 @@ function looksLikeEditionBundle(title){return /box set|boxed set|collection|omni
 function inferAcceptedSeriesEntry(x,name){
  var y=Object.assign({},x),t=norm(y.title||""),n=String(y.number||"").trim();
  if(!n){
-  n=seriesNumberFromText((y.seriesLabel||"")+" "+(y.subtitle||"")+" "+(y.title||""),name)||"";
- }
- if(!n){
   if(t===norm(name))n="1";
   else if(/\bkill joy\b/.test(t))n="0.5";
   else if(/\bgood girl bad blood\b/.test(t))n="2";
   else if(/\bas good as dead\b/.test(t))n="3";
  }
  y.number=n;
- if(/\bkill joy\b/.test(t)||/\bnovella\b|\bprequel\b|\bshort stor/.test(norm(y.subtitle||""))||String(n).indexOf(".")>=0)y.type="Novella / Extra";
+ if(/\bkill joy\b/.test(t)||String(n).indexOf(".")>=0)y.type="Novella / Extra";
  else y.type=guessSeriesType(y.title||"",n);
  return y
 }
@@ -496,7 +485,7 @@ function seriesDiscoveryConfidence(results){
  return{label:score>=5?"High":score>=3?"Review carefully":"Low",className:score>=5?"good":score>=3?"warn":"low",numbered:numbered,sources:Object.keys(sources),count:a.length}
 }
 function openSeriesDiscovery(){
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.7 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.8 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
  el("#modal").classList.remove("hidden");
  el("#runSeriesDiscovery").onclick=function(){var name=(el("#seriesDiscoveryName").value||"").trim(),author=(el("#seriesDiscoveryAuthor").value||"").trim();if(!name){alert("Enter the series name first.");return}findSeriesLineup(name,author)};
  el("#seriesDiscoveryName").onkeydown=function(e){if(e.key==="Enter")el("#runSeriesDiscovery").click()};
@@ -505,7 +494,7 @@ function openSeriesDiscovery(){
 async function findSeriesLineup(name,authorHint){
  name=String(name||"").trim();authorHint=String(authorHint||"").trim();
  if(!name)return;
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.7 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.8 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
  var local=owned().filter(function(b){return norm(b.series)===norm(name)}),seedAuthors=[];
  if(authorHint)seedAuthors.push(authorHint);
  local.forEach(function(b){if(b.author&&!seedAuthors.some(function(a){return norm(a)===norm(b.author)}))seedAuthors.push(b.author)});
@@ -518,7 +507,7 @@ async function findSeriesLineup(name,authorHint){
  var conf=seriesDiscoveryConfidence(results),incomplete=results.length<2,lines=results.map(function(x){return[x.number,x.title,x.type].join(" | ")}).join("\n"),warning=incomplete?'<div class="guardian"><b>⚠️ Lineup may be incomplete</b><div class="muted">Only '+results.length+' possible title was found. Review carefully.</div></div>':'';
  var src=conf.sources.length?conf.sources.join(" + "):"public metadata";
  var diagBox='<details class="series-discovery-diag"><summary>🔧 Discovery diagnostics</summary><div class="tiny">Google candidates: '+discoveryDiag.google+'<br>Open Library series match: '+discoveryDiag.olStructured+'<br>Open Library loose series match: '+discoveryDiag.olStructuredLoose+'<br>Open Library series query: '+discoveryDiag.olSeriesQuery+'<br>Open Library author catalog: '+discoveryDiag.olAuthorCatalog+'</div></details>';
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.7 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.8 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
  el("#cancelSeriesSuggestion").onclick=closeModal;
  el("#retrySeriesSuggestion").onclick=function(){openSeriesDiscovery();var n=el("#seriesDiscoveryName");if(n)n.value=name;var a=el("#seriesDiscoveryAuthor");if(a)a.value=authorHint||seedAuthors[0]||""};
  el("#confirmSeriesSuggestion").onclick=function(){
@@ -1268,7 +1257,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.27.7 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.27.8 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};

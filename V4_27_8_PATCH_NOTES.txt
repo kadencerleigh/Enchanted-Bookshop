@@ -1,0 +1,28 @@
+ENCHANTED BOOKSHOP V4.27.8 — EXACT SERIES RESULT ACCEPTANCE PATCH
+
+WHY
+V4.27.6 diagnostics proved Open Library's exact quoted series query returned 3 records,
+but only one internet candidate survived. The focused series-query records were being
+discarded when Open Library omitted or inconsistently formatted author metadata.
+
+FIX
+• Focused exact quoted series-query results no longer require author_name to survive.
+• The exact quoted series query plus a small focused result set remains the membership evidence.
+• Noisy 31-result structured/author paths remain locked down.
+• Author catalog remains diagnostics-only.
+• Discovery diagnostics are now always available while Series Discovery is being tested.
+• Existing dedupe, local-data precedence, numbering/type cleanup, and confirmation remain.
+
+PRESERVED
+• V4.27.5 desktop modal positioning fix
+• Desktop button handling
+• Ownership / Want to Read / Want to Own independence
+• Owned-copy truth
+• Want to Read / Want to Own View/Edit
+• Book Detail, atmospheres, challenge sync
+• Backup payload compatibility remains 4.22.1
+• Mobile More guard
+• Desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
