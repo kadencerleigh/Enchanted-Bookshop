@@ -1,0 +1,22 @@
+ENCHANTED BOOKSHOP V4.27.11 — FINAL LINEUP CLEANUP PATCH
+
+FIXES
+• Series fallback numbering now happens BEFORE candidate deduplication.
+  This allows a local numbered book and an unnumbered internet copy of the same title
+  to collapse into one series member.
+• Trusted local-library candidate data wins when duplicate sources describe the same work.
+• Eponymous first-volume matching tolerates the narrow punctuation/possessive variation
+  seen in the real test (Girl / Girls / Girl's), allowing the series-title book to resolve to #1.
+• Collection/bundle evidence extraction from V4.27.10 is retained.
+• Diagnostics remain available.
+
+PRESERVED
+• Public metadata never implies ownership
+• Want to Read / Want to Own / ownership remain independent
+• User confirmation required
+• Desktop modal and button fixes
+• Backup compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
