@@ -1,0 +1,42 @@
+ENCHANTED BOOKSHOP V4.27 — SERIES DISCOVERY 3.0
+
+BUILT
+• New “Discover a series” action directly from the Series page.
+• Search works even when you do not own any book in the series yet.
+• Search accepts series name + optional author hint.
+• Uses existing Google Books + Open Library public metadata.
+• Combines public results with any matching books already in your library.
+• Cleans decorated API titles and filters obvious box sets/bundles.
+• Shows discovery confidence before saving:
+  - number of possible volumes
+  - number with series numbers
+  - source coverage
+  - High / Review carefully / Low confidence
+• Nothing saves until the user confirms the proposed lineup.
+• User can edit, remove, renumber, or reclassify proposed entries first.
+• Confirmed discovery stores the author hint and discovery source with the series.
+• Confirmed series now have “Refresh discovery”.
+• Catalog-only discovered series appear in Series even with 0 owned books.
+
+TRUTH / SAFETY RULES
+• Series discovery NEVER marks a book owned.
+• Series discovery NEVER adds a book to Want to Read.
+• Series discovery NEVER adds a book to Want to Own.
+• Public metadata is a proposal only; user confirmation remains required.
+• Existing Work → Edition → Copy truth is untouched.
+
+PRESERVED
+• V4.26.8 Want to Own View/Edit
+• V4.26.7 Want to Read View/Edit
+• Owned-copy truth
+• Reading-status independence
+• Library Intelligence title/author search
+• Unknown spice ≠ Clean
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

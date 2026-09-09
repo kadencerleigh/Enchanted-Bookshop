@@ -1295,3 +1295,18 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
  .wish-card-actions{display:grid;grid-template-columns:1fr 1fr}
  .wish-card-actions button{width:100%}
 }
+
+/* V4.27 — Series Discovery 3.0 */
+.series-discovery-hero .actions{margin-top:14px}
+.series-discovery-empty{padding:28px}
+.series-source-note{display:inline-block;margin-top:6px;font-size:.78rem;opacity:.72}
+.series-discovery-confidence{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.series-discovery-confidence>div{padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035)}
+.series-discovery-confidence span{display:block;font-size:.72rem;opacity:.72;margin-bottom:4px}
+.series-discovery-confidence b{display:block;word-break:break-word}
+.series-discovery-confidence.good>div:first-child{box-shadow:inset 0 0 0 1px rgba(120,190,135,.25)}
+.series-discovery-confidence.warn>div:first-child{box-shadow:inset 0 0 0 1px rgba(220,180,90,.25)}
+.series-discovery-confidence.low>div:first-child{box-shadow:inset 0 0 0 1px rgba(200,120,120,.25)}
+@media(max-width:700px){
+ .series-discovery-confidence{grid-template-columns:1fr 1fr}
+}
