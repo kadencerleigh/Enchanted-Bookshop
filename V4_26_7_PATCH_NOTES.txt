@@ -1,0 +1,29 @@
+ENCHANTED BOOKSHOP V4.26.7 — WANT-TO-READ CARD ACTION FIX
+
+V4.26.6 attached View/Edit to one specific shelf renderer.
+Real-device testing showed the user's Want-to-Read path can render through
+the standard card renderer instead.
+
+FIXED
+• Any book card with reading status = Want to Read now gets:
+  📕 View Book
+  ✏️ Edit
+• This is based on the BOOK'S STATUS, not which page happened to render it.
+• Card tap still opens Book Detail.
+• View Book explicitly opens Book Detail.
+• Edit explicitly opens the editor.
+• Removed fragile page-title detection.
+
+PRESERVED
+• Ownership / wishlist / reading-status independence
+• Owned-copy truth
+• Title/author search
+• Unknown spice ≠ Clean
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
