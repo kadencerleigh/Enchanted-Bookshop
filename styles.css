@@ -1215,3 +1215,43 @@ html[data-atmosphere="original"] .library-view-panel{
 html[data-atmosphere="original"] .library-cover-art{
   background:linear-gradient(145deg,#30463a,#392633) !important;
 }
+
+
+/* =========================================================
+   V4.24 — BOOK DETAIL GLOW-UP
+   Atmosphere-safe: all surfaces inherit the existing theme variables.
+   ========================================================= */
+.book-detail-v424{position:relative}
+.detail-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(170px,230px) 1fr;gap:28px;align-items:center;padding:24px;border:1px solid var(--feature-border,var(--line));border-radius:22px;background:var(--feature-bg,var(--panel2));box-shadow:0 22px 46px var(--page-shadow,rgba(0,0,0,.25))}
+.detail-hero:after{content:"✦";position:absolute;right:20px;top:12px;font-size:42px;color:var(--feature-accent2,var(--gold));opacity:.16;pointer-events:none}
+html[data-atmosphere="cottagecore"] .detail-hero:after{content:"❀"}
+html[data-atmosphere="rainy"] .detail-hero:after{content:"☂"}
+html[data-atmosphere="autumn"] .detail-hero:after{content:"🍂"}
+html[data-atmosphere="gothic"] .detail-hero:after{content:"❦"}
+html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
+.detail-cover-button{appearance:none;border:0;background:transparent;padding:0;color:var(--feature-muted,var(--muted));cursor:pointer;text-align:center}
+.detail-cover-button .collector-cover{max-width:230px;margin:auto;border-color:var(--feature-border,var(--line));box-shadow:0 18px 38px var(--page-shadow,rgba(0,0,0,.35))}
+.detail-cover-button>span{display:block;margin-top:8px;font-size:10px;letter-spacing:.06em;opacity:.8}
+.detail-hero-copy{min-width:0;position:relative;z-index:1}.detail-kickers,.detail-hero-status,.detail-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.detail-kickers{margin-bottom:8px}.detail-owned,.detail-edition,.detail-status,.detail-rating{display:inline-flex;align-items:center;border:1px solid var(--feature-border,var(--line));border-radius:999px;padding:6px 9px;background:var(--feature-input-bg,var(--panel));font-size:11px}
+.detail-owned{color:var(--feature-accent2,var(--gold))}.detail-edition{color:var(--feature-text,var(--text))}
+.detail-series{display:flex;flex-direction:column;gap:3px;margin:10px 0;color:var(--feature-text,var(--text))}.detail-series span{font-size:11px;color:var(--feature-muted,var(--muted))}
+.detail-hero-status{margin:14px 0}.detail-status{font-weight:800;color:var(--feature-text,var(--text));border-color:var(--feature-accent,var(--gold))}
+.detail-actions{margin-top:14px}.detail-actions button{min-height:38px}
+.detail-glance,.detail-memory{margin-top:16px;padding:18px;border:1px solid var(--feature-border,var(--line));border-radius:18px;background:var(--feature-card-bg,var(--panel2));box-shadow:0 14px 30px var(--page-shadow,rgba(0,0,0,.16))}
+.detail-section-head h2{font-family:Georgia,serif;margin:3px 0 12px}
+.detail-glance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.detail-glance-grid>div{padding:11px;border:1px solid var(--feature-border,var(--line));border-radius:12px;background:var(--feature-input-bg,var(--panel))}
+.detail-glance-grid span{display:block;color:var(--feature-muted,var(--muted));font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}.detail-glance-grid b{font-size:12px}.detail-genre-chips{display:flex;gap:5px;flex-wrap:wrap}.detail-genre-chips .tag{margin:0}
+.detail-memory blockquote{font:700 19px Georgia,serif;margin:8px 0 10px;padding:0;border:0;color:var(--feature-text,var(--text))}
+.detail-editions-head{margin-top:24px}
+.detail-cover-lightbox{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(0,0,0,.88);backdrop-filter:blur(8px)}
+.detail-cover-lightbox img{max-width:min(88vw,520px);max-height:88vh;border-radius:14px;box-shadow:0 26px 70px rgba(0,0,0,.65)}
+.detail-cover-lightbox button{position:fixed;right:20px;top:16px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.55);color:white;font-size:28px;cursor:pointer}
+@media(max-width:650px){
+ .detail-hero{grid-template-columns:1fr;gap:16px;padding:17px;text-align:center}
+ .detail-cover-button .collector-cover{max-width:175px}
+ .detail-kickers,.detail-hero-status,.detail-actions{justify-content:center}
+ .detail-series{align-items:center}.detail-glance-grid{grid-template-columns:repeat(2,1fr)}
+ .detail-hero .collector-title{font-size:31px}.detail-hero .collector-author{font-size:17px}
+}
+@media(max-width:390px){.detail-glance-grid{grid-template-columns:1fr}}

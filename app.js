@@ -854,21 +854,55 @@ function editionGroupsFor(b){var groups={};workCopiesFor(b).forEach(function(x){
 function collectorCover(b){return '<div class="collector-cover">'+(b&&b.cover?'<img src="'+esc(b.cover)+'" alt="">':'<div class="collector-cover-empty">☾<br><span>'+esc(b&&b.title||'Book')+'</span></div>')+'</div>'}
 function collectorChips(items){return uniqText(items||[]).map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')}
 function collectorEditionMeta(b){var e=(b&&b.edition)||{},a=[];if(e.format)a.push(e.format);if(e.publisher)a.push(e.publisher);if(e.publicationDate)a.push(e.publicationDate);if(e.isbn)a.push('ISBN '+cleanISBN(e.isbn));return a.map(esc).join(' • ')}
+function detailStatusLabel(x){var m={'want-to-read':'Want to Read','currently-reading':'Currently Reading','read':'Read','dnf':'DNF','rereading':'Rereading'};return m[x]||String(x||'Want to Read').replace(/-/g,' ')}
+function detailLength(p){p=+p||0;if(!p)return'';return p<=300?'Short read':p<=450?'Medium read':'Long read'}
+function detailSpice(n){n=+n||0;var labels=['Clean','Mild','Steamy','Spicy','Very Spicy','Explicit'];return (n?Array(n).fill('🌶️').join(''):'🌱')+' '+labels[Math.max(0,Math.min(5,n))]}
+function detailLatestJournal(b){var a=[].concat(b.readingJournal||[]);if(!a.length)return null;a.sort(function(x,y){return String(y.updatedAt||y.createdAt||y.date||'').localeCompare(String(x.updatedAt||x.createdAt||x.date||''))});return a[0]}
+function detailSeriesContext(series,seriesNo){
+ if(!series)return'';var cat=getSeries(series),bits=[];if(seriesNo)bits.push('Book '+seriesNo);if(cat&&!cat.deleted&&Array.isArray(cat.books)&&cat.books.length)bits.push((seriesNo?'of ':'Series has ')+cat.books.length+(seriesNo?'':' cataloged books'));else bits.push('Series lineup not confirmed');
+ return bits.join(' • ')
+}
 function openCollectorBook(b){
- if(!b)return;var copies=workCopiesFor(b),groups=editionGroupsFor(b),intel=getWorkIntelligence(b.title,b.author||'')||{},genres=uniqText([].concat(intel.genres||[],b.genres||[])),tags=uniqText([].concat(intel.tags||[],b.tags||[])),series=intel.series||b.series||'',seriesNo=intel.seriesNo||b.seriesNo||'';
- var html='<div class="eyebrow">V4.9 • THE COLLECTOR’S LIBRARY</div><div class="collector-work-head">'+collectorCover(b)+'<div><div class="collector-layer">📖 WORK</div><h1 class="title collector-title">'+esc(b.title)+'</h1><div class="collector-author">'+esc(b.author||'Unknown author')+'</div>'+(series?'<div class="muted">'+esc(series)+(seriesNo?' • #'+esc(seriesNo):'')+'</div>':'')+'<div class="collector-tags">'+collectorChips(genres)+'</div>'+(tags.length?'<div class="tiny">'+esc(tags.join(' • '))+'</div>':'')+'</div></div>';
- html+='<div class="collector-work-strip"><div><span>Reading</span><b>'+esc(String(b.status||'').replace(/-/g,' '))+'</b></div><div><span>Rating</span><b>'+(b.rating?stars(b.rating):'Not rated')+'</b></div><div><span>Spice</span><b>'+spice(b.spice||0)+'</b></div><div><span>Collection</span><b>'+copies.length+' cop'+(copies.length===1?'y':'ies')+' • '+groups.length+' edition'+(groups.length===1?'':'s')+'</b></div></div>';
- html+='<div class="collector-section-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">';
- groups.forEach(function(g,gi){var x=g[0],e=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(e.name||e.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(e.isbn?'<span class="collector-isbn">'+esc(cleanISBN(e.isbn))+'</span>':'')+'</div>'+(Array.isArray(e.special)&&e.special.length?'<div class="collector-features">'+collectorChips(e.special)+'</div>':'')+'<div class="collector-copies">';
+ if(!b)return;
+ var copies=workCopiesFor(b),groups=editionGroupsFor(b),intel=getWorkIntelligence(b.title,b.author||'')||{},genres=uniqText([].concat(intel.genres||[],b.genres||[])),tags=uniqText([].concat(intel.tags||[],b.tags||[])),series=intel.series||b.series||'',seriesNo=intel.seriesNo||b.seriesNo||'',e=b.edition||{},latest=detailLatestJournal(b);
+ var collectorCallout=e.name||((e.special||[])[0])||'',pages=+e.pages||0,status=detailStatusLabel(b.status),seriesContext=detailSeriesContext(series,seriesNo);
+ var action=b.status==='currently-reading'?'🕯️ Log Reading':b.status==='read'?'↻ Start a Reread':b.status==='rereading'?'🕯️ Log Reading':'📖 Start Reading';
+ var rating=b.rating?stars(b.rating)+' '+b.rating+'/5':'Not rated';
+ var html='<div class="book-detail-v424">'+
+ '<section class="detail-hero"><button class="detail-cover-button" id="detailCoverSpotlight" aria-label="Enlarge cover">'+collectorCover(b)+'<span>Tap cover to enlarge</span></button>'+
+ '<div class="detail-hero-copy"><div class="eyebrow">📕 V4.24 • BOOK DETAIL</div><div class="detail-kickers">'+(b.owned?'<span class="detail-owned">✓ In My Library</span>':'')+(collectorCallout?'<span class="detail-edition">✨ '+esc(collectorCallout)+'</span>':'')+'</div>'+
+ '<h1 class="title collector-title">'+esc(b.title)+'</h1><div class="collector-author">'+esc(b.author||'Unknown author')+'</div>'+
+ (series?'<div class="detail-series"><b>'+esc(series)+(seriesNo?' #'+esc(seriesNo):'')+'</b><span>'+esc(seriesContext)+'</span></div>':'')+
+ '<div class="detail-hero-status"><span class="detail-status status-'+esc(b.status||'want-to-read')+'">'+esc(status)+'</span><span class="detail-rating">'+rating+'</span></div>'+
+ '<div class="detail-actions"><button class="primary" id="detailReadingAction">'+action+'</button><button class="pill" id="detailFavorite">'+(b.favorite?'★ Favorite':'☆ Favorite')+'</button><button class="pill" id="detailEdit">✏️ Edit Book</button></div></div></section>'+
+ '<section class="detail-glance"><div class="detail-section-head"><div><div class="eyebrow">🧙 BOOK AT A GLANCE</div><h2>The important bits</h2></div></div><div class="detail-glance-grid">'+
+ '<div><span>Genres</span><b class="detail-genre-chips">'+(genres.length?collectorChips(genres):'<em>Not set</em>')+'</b></div>'+
+ '<div><span>Spice</span><b>'+detailSpice(b.spice||0)+'</b></div>'+
+ '<div><span>Length</span><b>'+(pages?pages+' pages'+(detailLength(pages)?' • '+detailLength(pages):''):'Unknown')+'</b></div>'+
+ '<div><span>Format</span><b>'+esc(e.format||'Unknown')+'</b></div>'+
+ '<div><span>Status</span><b>'+esc(status)+'</b></div><div><span>Rating</span><b>'+rating+'</b></div></div></section>'+
+ (latest&&(latest.reaction||latest.mood||latest.date)?'<section class="detail-memory"><div class="eyebrow">💬 LATEST READING MEMORY</div>'+(latest.reaction?'<blockquote>'+esc(latest.reaction)+'</blockquote>':'')+'<div class="muted">'+esc([latest.date,latest.mood].filter(Boolean).join(' • '))+'</div></section>':'')+
+ '<div class="collector-section-head detail-editions-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">';
+ groups.forEach(function(g,gi){var x=g[0],xe=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(xe.name||xe.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(xe.isbn?'<span class="collector-isbn">'+esc(cleanISBN(xe.isbn))+'</span>':'')+'</div>'+(Array.isArray(xe.special)&&xe.special.length?'<div class="collector-features">'+collectorChips(xe.special)+'</div>':'')+'<div class="collector-copies">';
  g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory connection-memory-list">'+connectionDisplay(c.copyConnections).map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
  html+='</div></section>'});
- html+='</div><div class="tiny collector-safety">V4.9 organizes your existing records into Work → Edition → Copy views without rewriting your saved library data.</div>';
+ html+='</div><div class="tiny collector-safety">V4.24 changes presentation and quick actions only. Your Work → Edition → Copy data model remains the source of truth.</div></div>';
  el('#modalBody').innerHTML=html;el('#modal').classList.remove('hidden');
+
+ var edit=el('#detailEdit');if(edit)edit.onclick=function(){openBook(b)};
+ var fav=el('#detailFavorite');if(fav)fav.onclick=function(){b.favorite=!b.favorite;b.updatedAt=now();save();autoSyncMaybe();openCollectorBook(b)};
+ var read=el('#detailReadingAction');if(read)read.onclick=function(){
+   if(b.status==='currently-reading'||b.status==='rereading'){openReadingSession(b);return}
+   b.status=(b.status==='read'?'rereading':'currently-reading');b.updatedAt=now();save();autoSyncMaybe();openCollectorBook(b)
+ };
+ var spot=el('#detailCoverSpotlight');if(spot&&b.cover)spot.onclick=function(){
+   var o=document.createElement('div');o.className='detail-cover-lightbox';o.innerHTML='<button aria-label="Close enlarged cover">×</button><img src="'+esc(b.cover)+'" alt="'+esc(b.title)+' cover">';
+   document.body.appendChild(o);o.onclick=function(ev){if(ev.target===o||ev.target.tagName==='BUTTON')o.remove()}
+ };
  document.querySelectorAll('.collectorEdit').forEach(function(btn){btn.onclick=function(ev){ev.stopPropagation();var id=btn.getAttribute('data-copy-id'),x=visible().find(function(z){return z.id===id});if(x)openBook(x)}});
  document.querySelectorAll('.collectorDuplicate').forEach(function(btn){btn.onclick=function(ev){ev.stopPropagation();var id=btn.getAttribute('data-copy-id'),x=visible().find(function(z){return z.id===id});if(!x)return;var n=JSON.parse(JSON.stringify(x));n.id='';n.workId=x.workId||uid();n.notes='';n.copyConnections=[];n.updatedAt=now();openBook(n)}});
  var add=el('#collectorAddEdition');if(add)add.onclick=function(){openBook({id:'',workId:b.workId||uid(),title:b.title,author:b.author,genres:(b.genres||[]).slice(),tags:(b.tags||[]).slice(),series:b.series||'',seriesNo:b.seriesNo||'',status:b.status||'want-to-read',owned:true,wantOwn:false,rating:b.rating||0,favorite:false,spice:b.spice||0,cover:'',edition:{isbn:'',name:'',format:'Hardcover',publisher:'',publicationDate:'',pages:'',printing:'',special:[]},copyConnections:[],notes:''})};
 }
-
 function openBook(b){
  b=b||{id:"",workId:"",title:"",author:"",genres:[],tags:[],series:"",seriesNo:"",status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""};var e=b.edition||{};
  el("#modalBody").innerHTML='<div class="eyebrow">'+(b.id?"Edit copy":"Add to collection")+'</div><h1 class="title">'+(b.id?"Edit Book":"A New Book")+'</h1><form id="bookForm"><div class="form">'+
