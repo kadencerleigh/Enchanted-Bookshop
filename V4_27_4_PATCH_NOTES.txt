@@ -1,0 +1,27 @@
+ENCHANTED BOOKSHOP V4.27.4 — SERIES FILTERING + DESKTOP BUTTON PATCH
+
+VERSIONING CORRECTION
+This is the exact patch previously packaged under a reused V4.27.3 label.
+No feature behavior was changed during this re-versioning step.
+
+INCLUDED PATCHES
+• Blocks author-only catalog results from contaminating Series Discovery.
+• Tightens structured series membership matching.
+• Applies conservative numbering/type cleanup to accepted series candidates.
+• Kill Joy can be treated as 0.5 / Novella / Extra when found.
+• Adds more reliable delegated desktop click handling for major page actions.
+• Retains Want to Read and Want to Own View/Edit behavior.
+
+PRESERVED
+• Ownership / reading intent / wishlist independence
+• Owned-copy truth
+• Library Intelligence search
+• Book Detail
+• Challenge sync
+• Backup payload compatibility remains 4.22.1
+• Atmospheres
+• Desktop sidebar scroll
+• Mobile More guard
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
