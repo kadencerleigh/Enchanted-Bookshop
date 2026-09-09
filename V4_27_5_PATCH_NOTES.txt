@@ -1,0 +1,19 @@
+ENCHANTED BOOKSHOP V4.27.5 — DESKTOP MODAL POSITION PATCH
+
+FIX
+• Desktop popups/modals are forced to the viewport instead of flowing to the bottom of long pages.
+• Modal content stays centered and scrollable within the screen.
+• Hidden modals remain hidden.
+
+PRESERVED
+• V4.27.4 series filtering patch
+• Desktop delegated button handling
+• Want to Read / Want to Own actions
+• Ownership truth / reading intent independence
+• Book Detail, atmospheres, challenge sync
+• Backup payload compatibility remains 4.22.1
+• Mobile More guard
+• Desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

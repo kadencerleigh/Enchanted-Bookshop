@@ -1315,3 +1315,31 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
 .series-discovery-diag{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
 .series-discovery-diag summary{cursor:pointer;font-weight:700}
 .series-discovery-diag .tiny{margin-top:8px;line-height:1.6}
+
+
+/* V4.27.5 — Desktop modal positioning guard */
+@media (min-width:821px){
+  #modal{
+    position:fixed !important;
+    inset:0 !important;
+    width:100vw !important;
+    height:100vh !important;
+    z-index:120 !important;
+    overflow:auto !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:24px !important;
+    box-sizing:border-box !important;
+  }
+  #modal.hidden{
+    display:none !important;
+  }
+  #modal .modal-card,
+  #modal .sheet,
+  #modal > div{
+    max-height:calc(100vh - 48px) !important;
+    overflow:auto !important;
+    margin:auto !important;
+  }
+}
