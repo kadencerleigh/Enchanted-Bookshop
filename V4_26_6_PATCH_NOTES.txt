@@ -1,0 +1,23 @@
+ENCHANTED BOOKSHOP V4.26.6 — WANT TO READ VIEW/EDIT PATCH
+
+FIXED
+• Want to Read shelf cards now have an explicit 📕 View Book button.
+• Want to Read shelf cards also retain a separate ✏️ Edit button.
+• Tapping the card itself still opens Book Detail.
+• View Book opens the V4.24 Book Detail / Collector view.
+• Edit opens the existing book editor.
+
+PRESERVED
+• Reading status independence
+• Want to Own / Owned separation
+• Owned-copy truth fix
+• Title/author search
+• Unknown spice ≠ Clean
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

@@ -51,6 +51,10 @@ function card(b){
  var tags=(b.genres||[]).slice(0,2);if(b.favorite)tags.push("Favorite");if(b.status==="read")tags.push("Read");
  return '<article class="card" data-id="'+esc(b.id)+'"><div class="cover">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="">':esc(b.title))+'</div><div class="info"><div class="bt">'+esc(b.title)+'</div><div class="muted">'+esc(b.author)+'</div>'+(b.series?'<div class="muted">'+esc(b.series)+(b.seriesNo?' • #'+esc(b.seriesNo):'')+'</div>':'')+'<div>'+tags.map(function(t){return'<span class="tag">'+esc(t)+'</span>'}).join("")+'</div>'+(b.rating?'<div class="muted">'+stars(b.rating)+'</div>':'')+'<div class="muted">'+spice(b.spice||0)+' · '+esc((b.edition&&b.edition.format)||"Edition")+'</div></div></article>'
 }
+function shelfCard(b){
+ var tags=(b.genres||[]).slice(0,2);if(b.favorite)tags.push("Favorite");if(b.status==="read")tags.push("Read");
+ return '<article class="card shelf-card" data-id="'+esc(b.id)+'"><div class="cover">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="">':esc(b.title))+'</div><div class="info"><div class="bt">'+esc(b.title)+'</div><div class="muted">'+esc(b.author)+'</div>'+(b.series?'<div class="muted">'+esc(b.series)+(b.seriesNo?' • #'+esc(b.seriesNo):'')+'</div>':'')+'<div>'+tags.map(function(t){return'<span class="tag">'+esc(t)+'</span>'}).join("")+'</div>'+(b.rating?'<div class="muted">'+stars(b.rating)+'</div>':'')+'<div class="muted">'+detailSpice(b.spice,b.spiceConfidence)+' · '+esc((b.edition&&b.edition.format)||(b.workMetadata&&b.workMetadata.format)||"Edition")+'</div><div class="shelf-card-actions"><button class="primary" data-shelf-view="'+esc(b.id)+'">📕 View Book</button><button class="pill" data-shelf-edit="'+esc(b.id)+'">✏️ Edit</button></div></div></article>'
+}
 function filtered(){
  var q=(el("#search").value||"").toLowerCase().trim();
  return owned().filter(function(b){
@@ -347,7 +351,7 @@ function catalogSeriesCopy(name,title,no){
  state.view="library";render();openBook({id:"",workId:"",title:title,author:"",genres:[],series:name,seriesNo:no,status:"no-reading-status",owned:true,wantOwn:false,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},notes:""});
 }
 function openMissing(name,title,no){catalogSeriesCopy(name,title,no)}
-function shelf(title,a){return'<div class="eyebrow">Your shelves</div><h1 class="title">'+title+'</h1><div class="grid">'+(a.map(card).join("")||'<div class="empty">Nothing here yet. ✨</div>')+'</div>'}
+function shelf(title,a){var renderCard=(title.indexOf('Want to Read')>=0)?shelfCard:card;return'<div class="eyebrow">Your shelves</div><h1 class="title">'+title+'</h1><div class="grid">'+(a.map(renderCard).join("")||'<div class="empty">Nothing here yet. ✨</div>')+'</div>'}
 var BACKUP_META_KEY="enchanted-bookshop-backup-meta-v4-22";
 function backupMeta(){var x={};try{x=JSON.parse(localStorage.getItem(BACKUP_META_KEY))||{}}catch(e){}return x}
 function setBackupMeta(x){localStorage.setItem(BACKUP_META_KEY,JSON.stringify(x||{}))}
@@ -1065,7 +1069,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26.5 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26.6 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};
@@ -1718,6 +1722,8 @@ document.addEventListener("click",function(e){
  var sf=e.target.closest("[data-series-find]");if(sf){findSeriesLineup(sf.getAttribute("data-series-find"));return}
  var se=e.target.closest("[data-series-edit]");if(se){openSeriesEditor(se.getAttribute("data-series-edit"));return}
  var mb=e.target.closest("[data-missing-series]");if(mb){openMissing(mb.getAttribute("data-missing-series"),mb.getAttribute("data-missing-title"),mb.getAttribute("data-missing-no"));return}
+ var sv=e.target.closest("[data-shelf-view]");if(sv){var vb=visible().find(function(x){return x.id===sv.getAttribute("data-shelf-view")});if(vb)openCollectorBook(vb);return}
+ var se2=e.target.closest("[data-shelf-edit]");if(se2){var eb=visible().find(function(x){return x.id===se2.getAttribute("data-shelf-edit")});if(eb)openBook(eb);return}
  var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openCollectorBook(b)}
 });
 el("#addBtn").onclick=openBookshopIntake;el("#scanBtn").onclick=openGuardian;el("#closeModal").onclick=closeModal;el("#modal").onclick=function(e){if(e.target.id==="modal")closeModal()};el("#search").oninput=function(){if(state.view!=="library")state.view="library";render()};

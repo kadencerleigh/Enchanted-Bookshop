@@ -1280,3 +1280,11 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
 .work-search-copy small{display:block;color:var(--feature-muted,var(--muted));margin-bottom:8px}
 .work-search-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 @media(max-width:560px){.work-search-card{grid-template-columns:60px 1fr}.work-search-card img,.work-search-cover{width:60px;height:88px}.work-search-actions button{font-size:11px;padding:9px 8px}}
+
+/* V4.26.6 — Want to Read shelf actions */
+.shelf-card .shelf-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.shelf-card .shelf-card-actions button{min-width:0}
+@media(max-width:560px){
+ .shelf-card .shelf-card-actions{display:grid;grid-template-columns:1fr 1fr}
+ .shelf-card .shelf-card-actions button{width:100%}
+}
