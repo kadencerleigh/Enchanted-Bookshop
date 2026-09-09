@@ -1,0 +1,31 @@
+ENCHANTED BOOKSHOP V4.27.3 — SERIES CANDIDATE FILTER PATCH
+
+REAL-WORLD RESULT FROM V4.27.2
+Internet retrieval finally worked, but the candidate list contained unrelated
+books from the author's wider catalog.
+
+THIS PATCH TARGETS THAT EXACT FAILURE
+• Carries the matching Open Library series label forward as evidence.
+• Scores candidates by actual series evidence, numbering, exact series-title
+  match, or an already-known local series book.
+• Rejects weak author-catalog-only candidates instead of treating every book by
+  the author as part of the requested series.
+• Adds stronger generic parsing for series numbers embedded in structured
+  labels.
+• Reclassifies sub-1 numbered volumes and explicit novella/prequel/companion
+  cues as Novella / Extra.
+• Diagnostics now show Accepted internet candidates.
+
+IMPORTANT
+This patch does NOT hard-code A Good Girl's Guide to Murder or Holly Jackson.
+The filtering rules are generic so Series Discovery can work across the user's
+library.
+
+TRUTH RULES RETAINED
+• No automatic ownership.
+• No automatic Want to Read.
+• No automatic Want to Own.
+• Nothing saves until user confirms the lineup.
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

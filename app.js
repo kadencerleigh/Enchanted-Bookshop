@@ -380,99 +380,86 @@ async function openLibrarySearchParams(params){
   return r&&r.ok?((r.data&&r.data.docs)||[]):[]
  }catch(e){return[]}
 }
+function seriesNumberFromLabel(raw,name){
+ var r=String(raw||""),base=String(name||"");
+ var direct=seriesNumberFromText(r,base);if(direct)return direct;
+ var tail=norm(r).replace(norm(base)," ").trim(),m=tail.match(/(?:^|\s)(\d+(?:\.\d+)?)(?:\s|$)/);
+ return m?m[1]:""
+}
 function seriesLabelMatches(raw,name){
  var a=norm(raw||""),b=norm(name||"");
  if(!a||!b)return false;
  if(a===b)return true;
- var stripped=a
-  .replace(/\b(?:book|volume|vol|part|series)\b/g," ")
-  .replace(/\b\d+(?:\.\d+)?\b/g," ")
-  .replace(/[()[\]#:.,-]+/g," ")
-  .replace(/\s+/g," ").trim();
+ /* Accept labels such as "Series Name #2", "Series Name 2",
+    or "Series Name (Book 2)" while avoiding unrelated partial matches. */
+ var stripped=a.replace(/\b(?:book|volume|vol|part)\b/g," ").replace(/\b\d+(?:\.\d+)?\b/g," ").replace(/\s+/g," ").trim();
  if(stripped===b)return true;
- return a.indexOf(b)===0&&a.length<=b.length+32
+ return a.indexOf(b)===0&&a.length<=b.length+24
 }
-function openLibrarySeriesNumberFromDoc(d,name){
- var ss=Array.isArray(d.series)?d.series:[d.series],no="";
- (ss||[]).some(function(x){
-  if(!x)return false;
-  var raw=String(x);
-  no=seriesNumberFromText(raw,name);
-  if(!no){
-   var m=raw.match(/(?:#|book|volume|vol\.?|part)?\s*(\d+(?:\.\d+)?)\s*$/i);
-   if(m)no=m[1]
-  }
-  return !!no
- });
- if(!no)no=seriesNumberFromText((d.title||"")+" "+(d.subtitle||""),name);
- if(!no&&norm(d.title||"")===norm(name))no="1";
- return no
-}
-function openLibraryCandidateFromStrictDoc(d,name,seedAuthors){
+function openLibraryCandidateFromDoc(d,name,seedAuthors){
  var authors=d.author_name||[],seedNorm=(seedAuthors||[]).map(norm),
      authorHit=!seedNorm.length||authors.some(function(a){return seedNorm.indexOf(norm(a))>=0});
  if(!authorHit)return null;
- var ss=Array.isArray(d.series)?d.series:[d.series],
-     matched=(ss||[]).filter(function(x){return x&&seriesLabelMatches(x,name)});
+ var ss=Array.isArray(d.series)?d.series:[d.series],matched=(ss||[]).filter(function(x){return x&&seriesLabelMatches(x,name)});
  if(!matched.length)return null;
- var no=openLibrarySeriesNumberFromDoc(d,name);
- return{number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:authors}
-}
-function openLibraryCandidateFromStructuredDoc(d,name,seedAuthors){
- var authors=d.author_name||[],seedNorm=(seedAuthors||[]).map(norm),
-     authorHit=!seedNorm.length||authors.some(function(a){return seedNorm.indexOf(norm(a))>=0});
- if(!authorHit)return null;
- if(!d.title)return null;
-
- /* V4.27.3:
-    If Open Library returned this row from its dedicated `series=` endpoint,
-    the endpoint itself is the evidence that the work belongs to the requested
-    series. We no longer require the row's `series` field to repeat the search
-    text exactly — that was the bug discarding all 31 real results. */
- var no=openLibrarySeriesNumberFromDoc(d,name);
- return{number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:authors}
+ var raw=String(matched[0]||""),no=seriesNumberFromLabel(raw,name)||seriesNumberFromText((d.title||"")+" "+(d.subtitle||""),name);
+ if(!no&&norm(d.title||"")===norm(name))no="1";
+ return{number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:authors,seriesEvidence:raw}
 }
 async function openLibrarySeriesCandidates(name,seedAuthors,diag){
  diag=diag||{};
- var out=[],seen={};
- function addCandidate(c){
-  if(!c||!c.title)return;
-  var k=norm(c.title)+"|"+String(c.number||"")+"|"+norm((c.authors||[]).join(" "));
-  if(seen[k])return;seen[k]=1;out.push(c)
+ var out=[],seenDoc={};
+ function consume(docs){
+  (docs||[]).forEach(function(d){
+   var dk=(d.key||"")+"|"+norm(d.title||"");
+   if(seenDoc[dk])return;seenDoc[dk]=1;
+   var c=openLibraryCandidateFromDoc(d,name,seedAuthors);
+   if(c)out.push(c)
+  })
  }
- function consumeStructured(docs){
-  (docs||[]).forEach(function(d){addCandidate(openLibraryCandidateFromStructuredDoc(d,name,seedAuthors))})
- }
- function consumeStrict(docs){
-  (docs||[]).forEach(function(d){addCandidate(openLibraryCandidateFromStrictDoc(d,name,seedAuthors))})
- }
-
- /* Strongest evidence: Open Library's actual structured `series=` endpoint. */
+ /* 1. Structured series parameter — strongest path. */
  var structured=await openLibrarySearchParams({series:name,author:(seedAuthors&&seedAuthors[0])||""});
- diag.olStructured=(structured||[]).length;consumeStructured(structured);
+ diag.olStructured=(structured||[]).length;consume(structured);
 
- /* Same structured series endpoint without author to catch metadata variants. */
+ /* 2. Structured series without author in case author metadata varies by edition. */
  var structuredLoose=await openLibrarySearchParams({series:name});
- diag.olStructuredLoose=(structuredLoose||[]).length;consumeStructured(structuredLoose);
+ diag.olStructuredLoose=(structuredLoose||[]).length;consume(structuredLoose);
 
- /* Lucene series query is useful, but keep strict label verification here. */
+ /* 3. Lucene-style series query. */
  var seriesQ=await openLibrarySearch('series:"'+name+'"');
- diag.olSeriesQuery=(seriesQ||[]).length;consumeStrict(seriesQ);
+ diag.olSeriesQuery=(seriesQ||[]).length;consume(seriesQ);
 
- /* Author-only catalog remains strict to avoid unrelated books by the author. */
+ /* 4. Author catalog fallback. Only structured series labels are accepted here. */
  if(seedAuthors&&seedAuthors.length){
   var authorDocs=await openLibrarySearchParams({author:seedAuthors[0]});
-  diag.olAuthorCatalog=(authorDocs||[]).length;consumeStrict(authorDocs)
+  diag.olAuthorCatalog=(authorDocs||[]).length;consume(authorDocs)
  }
- diag.olAccepted=out.length;
  return out
 }
 function looksLikeEditionBundle(title){return /box set|boxed set|collection|omnibus|books?\s*\d+\s*[-–]\s*\d+|complete series|bundle/i.test(title||"")}
+function seriesCandidateEvidenceScore(x,name,localTitles){
+ var score=0,t=norm(x.title||""),seriesEv=String(x.seriesEvidence||"");
+ if(seriesEv&&seriesLabelMatches(seriesEv,name))score+=6;
+ if(String(x.number||"").trim())score+=3;
+ if(norm(x.title||"")===norm(name))score+=5;
+ if((localTitles||[]).indexOf(t)>=0)score+=6;
+ if(x.source==="Your library")score+=8;
+ return score
+}
+function classifySeriesDiscoveryCandidate(x,name){
+ var y=Object.assign({},x),t=norm(y.title||""),n=String(y.number||"").trim();
+ /* Generic novella/extra cues. We do not assume every short book is an extra;
+    this only reclassifies when metadata/title/order gives a strong cue. */
+ if(n&&parseFloat(n)>0&&parseFloat(n)<1)y.type="Novella / Extra";
+ if(/\b(novella|prequel|companion|short story)\b/.test(t))y.type="Novella / Extra";
+ return y
+}
 function cleanSeriesResults(items,name){
- var cleaned=uniqueSeriesCandidates(items,name).filter(function(x){return !looksLikeEditionBundle(x.title)});
- /* V4.27.1: keep plausible unnumbered candidates for user review instead of
-    throwing them away just because two numbered books were found. */
- return cleaned
+ var raw=(items||[]).filter(function(x){return x&&x.title&&!looksLikeEditionBundle(x.title)}),
+     localTitles=raw.filter(function(x){return x.source==="Your library"}).map(function(x){return norm(x.title)}),
+     scored=raw.map(function(x){return{item:classifySeriesDiscoveryCandidate(x,name),score:seriesCandidateEvidenceScore(x,name,localTitles)}}),
+     strong=scored.filter(function(x){return x.score>=6}).map(function(x){return x.item});
+ return uniqueSeriesCandidates(strong,name)
 }
 function seriesDiscoveryConfidence(results){
  var a=results||[],numbered=a.filter(function(x){return String(x.number||"").trim()}).length,sources={};
@@ -498,14 +485,19 @@ async function findSeriesLineup(name,authorHint){
  if(authorHint)seedAuthors.push(authorHint);
  local.forEach(function(b){if(b.author&&!seedAuthors.some(function(a){return norm(a)===norm(b.author)}))seedAuthors.push(b.author)});
  var existing=getSeries(name);if(existing&&existing.authorHint&&!seedAuthors.some(function(a){return norm(a)===norm(existing.authorHint)}))seedAuthors.push(existing.authorHint);
- var discoveryDiag={google:0,olStructured:0,olStructuredLoose:0,olSeriesQuery:0,olAuthorCatalog:0,olAccepted:0};
+ var discoveryDiag={google:0,olStructured:0,olStructuredLoose:0,olSeriesQuery:0,olAuthorCatalog:0};
  var google=await googleSeriesCandidates(name,seedAuthors);discoveryDiag.google=google.length;
  var ol=await openLibrarySeriesCandidates(name,seedAuthors,discoveryDiag);
- var known=local.map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",source:"Your library",authors:[b.author||""]}}),results=cleanSeriesResults(google.concat(ol,known),name);
+ var known=local.map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",source:"Your library",authors:[b.author||""],seriesEvidence:name+" "+(b.seriesNo||"")}}),
+     results=cleanSeriesResults(google.concat(ol,known),name);
+ /* If structured metadata gives several candidates but only a few survive,
+    keep the result conservative and let diagnostics show the mismatch rather
+    than filling the lineup with the author's unrelated books. */
+ discoveryDiag.acceptedInternet=results.filter(function(x){return x.source!=="Your library"}).length;
  if(!results.length){el("#modalBody").innerHTML='<div class="eyebrow">🔎 SERIES DISCOVERY 3.0</div><h1 class="title">No confident lineup found</h1><p class="sub">Public metadata did not give Enchanted Bookshop a usable lineup for <b>'+esc(name)+'</b>. Nothing was saved or changed.</p><div class="actions"><button class="primary" id="retrySeriesDiscovery">🔎 Try another search</button><button class="pill" id="fallbackSeriesManual">✏️ Enter lineup manually</button></div>';el("#retrySeriesDiscovery").onclick=openSeriesDiscovery;el("#fallbackSeriesManual").onclick=function(){openSeriesEditor(name)};return}
  var conf=seriesDiscoveryConfidence(results),incomplete=results.length<2,lines=results.map(function(x){return[x.number,x.title,x.type].join(" | ")}).join("\n"),warning=incomplete?'<div class="guardian"><b>⚠️ Lineup may be incomplete</b><div class="muted">Only '+results.length+' possible title was found. Review carefully.</div></div>':'';
  var src=conf.sources.length?conf.sources.join(" + "):"public metadata";
- var diagBox=(incomplete||conf.label==="Low")?'<details class="series-discovery-diag"><summary>🔧 Discovery diagnostics</summary><div class="tiny">Google candidates: '+discoveryDiag.google+'<br>Open Library series match: '+discoveryDiag.olStructured+'<br>Open Library loose series match: '+discoveryDiag.olStructuredLoose+'<br>Open Library series query: '+discoveryDiag.olSeriesQuery+'<br>Open Library author catalog: '+discoveryDiag.olAuthorCatalog+'<br>Open Library accepted candidates: '+(discoveryDiag.olAccepted||0)+'</div></details>':'';
+ var diagBox=(incomplete||conf.label==="Low")?'<details class="series-discovery-diag"><summary>🔧 Discovery diagnostics</summary><div class="tiny">Google candidates: '+discoveryDiag.google+'<br>Open Library series match: '+discoveryDiag.olStructured+'<br>Open Library loose series match: '+discoveryDiag.olStructuredLoose+'<br>Open Library series query: '+discoveryDiag.olSeriesQuery+'<br>Open Library author catalog: '+discoveryDiag.olAuthorCatalog+'<br>Accepted internet candidates: '+(discoveryDiag.acceptedInternet||0)+'</div></details>':'';
  el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.3 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
  el("#cancelSeriesSuggestion").onclick=closeModal;
  el("#retrySeriesSuggestion").onclick=function(){openSeriesDiscovery();var n=el("#seriesDiscoveryName");if(n)n.value=name;var a=el("#seriesDiscoveryAuthor");if(a)a.value=authorHint||seedAuthors[0]||""};
