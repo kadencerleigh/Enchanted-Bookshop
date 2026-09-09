@@ -463,6 +463,64 @@ function cleanupMode(){
  return '<section class="cleanup-hero"><div><div class="eyebrow">🧹 V4.19 • BOOK GOBLIN CLEANUP MODE</div><h1 class="title">Find the messy little records.</h1><p class="sub">A safe cleanup sweep for your <b>owned physical library</b>: missing covers, ISBNs, pages, genres, edition details, series positions, and copy-review signals.</p></div><div class="cleanup-goblin">🧌🧹</div></section><section class="cleanup-summary"><div class="cleanup-stat"><b>'+allOwned.length+'</b><span>owned books checked</span></div><div class="cleanup-stat"><b>'+rows.length+'</b><span>books need attention</span></div><div class="cleanup-stat"><b>'+issueCount+'</b><span>cleanup flags</span></div><div class="cleanup-stat"><b>'+pct+'%</b><span>records passing every check</span><div class="cleanup-progress"><i style="width:'+pct+'%"></i></div></div></section><div class="cleanup-tabs">'+tab('all','🧹 All',rows.length)+tab('covers','🖼️ Covers',counts.covers)+tab('metadata','📚 Metadata',counts.metadata)+tab('series','🔮 Series',counts.series)+tab('duplicates','👯 Copy review',counts.duplicates)+'</div><div class="cleanup-list">'+cards+'</div><div class="insight-note cleanup-note">🛡️ <b>Goblin safety rule:</b> Cleanup Mode diagnoses your saved records only. It never deletes books, merges copies, or invents missing metadata. “Fix record” opens your normal editor so <b>you</b> stay in control.</div>'
 }
 
+
+// V4.20 — Achievements. Derived from real saved Bookshop data wherever possible.
+function achievementMetrics(){
+ var o=owned(),sessions=[],pages=0,minutes=0,byBook={},moods={},genres={},specialBooks=0,signedBooks=0;
+ o.forEach(function(b){
+  (b.genres||[]).forEach(function(g){if(String(g||'').trim())genres[String(g).trim()]=1});
+  var feats=collectorFeatureMap(b);if(Object.keys(feats).length)specialBooks++;if(feats.signed)signedBooks++;
+  (b.readingJournal||[]).forEach(function(e){sessions.push({book:b,entry:e});minutes+=(+e.minutes||0);if(e.mood)moods[e.mood]=1;var pg=+e.page||0;if(pg){var k=b.id||b.title,prev=byBook[k]||0;if(pg>=prev)pages+=pg-prev;byBook[k]=Math.max(prev,pg)}})
+ });
+ var confirmed=seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed&&Array.isArray(x.books)&&x.books.length}),complete=0;
+ confirmed.forEach(function(cat){var own=o.filter(function(b){return norm(b.series)===norm(cat.name)});if(cat.books.every(function(x){return ownedSeriesEntry(x,own)}))complete++});
+ var cleanRows=cleanupIssueData(),cleanCount=Math.max(0,o.length-cleanRows.length),rated=o.filter(function(b){return +b.rating>0}).length;
+ var workCopies={};o.forEach(function(b){var k=norm(b.title)+'|'+norm(b.author||'');if(k)(workCopies[k]||(workCopies[k]=[])).push(b)});var multiEdition=Object.keys(workCopies).filter(function(k){var a=workCopies[k],isbns={};a.forEach(function(b){var x=cleanISBN(b.edition&&b.edition.isbn||'');if(x)isbns[x]=1});return a.length>1&&Object.keys(isbns).length>1}).length;
+ return {owned:o.length,read:o.filter(function(b){return b.status==='read'}).length,tbr:o.filter(function(b){return b.status==='want-to-read'}).length,favorites:o.filter(function(b){return b.favorite}).length,rated:rated,fiveStar:o.filter(function(b){return +b.rating===5}).length,sessions:sessions.length,pages:pages,minutes:minutes,memories:sessions.filter(function(x){var e=x.entry;return String(e.reaction||'').trim()||String(e.quote||'').trim()||String(e.notes||'').trim()}).length,quotes:sessions.filter(function(x){return String(x.entry.quote||'').trim()}).length,moods:Object.keys(moods).length,genres:Object.keys(genres).length,specialBooks:specialBooks,signedBooks:signedBooks,seriesBooks:o.filter(function(b){return String(b.series||'').trim()}).length,confirmedSeries:confirmed.length,completeSeries:complete,cleanCount:cleanCount,cleanPct:o.length?Math.round(cleanCount/o.length*100):100,multiEdition:multiEdition}
+}
+function achievementDefinitions(m){
+ function a(id,cat,icon,name,desc,rarity,current,goal){current=Math.max(0,+current||0);goal=Math.max(1,+goal||1);return{id:id,category:cat,icon:icon,name:name,desc:desc,rarity:rarity,current:current,goal:goal,unlocked:current>=goal}}
+ return [
+  a('first-chapter','Reading','📖','First Chapter','Log your first real Reading Journal session.','Common',m.sessions,1),
+  a('page-turner','Reading','📄','Page Turner','Log 100 pages of reading progress.','Common',m.pages,100),
+  a('thousand-pages','Reading','🪶','A Thousand Pages Deep','Log 1,000 pages of reading progress.','Rare',m.pages,1000),
+  a('ten-hours','Reading','🕯️','Ten Hours in the Stacks','Log 600 minutes of reading time.','Rare',m.minutes,600),
+  a('first-finish','Reading','✨','The End?','Finish your first tracked book.','Common',m.read,1),
+  a('five-finished','Reading','📚','Five Down','Finish 5 tracked books.','Rare',m.read,5),
+  a('book-dragon','Reading','🐉','Book Dragon','Finish 25 tracked books.','Epic',m.read,25),
+  a('dear-diary','Journal','✍️','Dear Diary…','Log 5 reading sessions.','Common',m.sessions,5),
+  a('memory-keeper','Journal','🕯️','Memory Keeper','Save reactions, notes, or quotes in 5 sessions.','Rare',m.memories,5),
+  a('quote-collector','Journal','💬','Quote Collector','Save 5 favorite quotes in your journal.','Rare',m.quotes,5),
+  a('mood-mapper','Journal','🌙','Mood Mapper','Log 4 different reading moods.','Rare',m.moods,4),
+  a('shelf-starter','Collection','📚','Shelf Starter','Own 5 cataloged physical books.','Common',m.owned,5),
+  a('cozy-corner','Collection','🪵','Cozy Corner','Grow your physical library to 25 books.','Rare',m.owned,25),
+  a('dragon-hoard','Collection','🐲','Dragon’s Hoard','Grow your physical library to 100 books.','Legendary',m.owned,100),
+  a('favorite-spell','Collection','⭐','Favorite Spell','Mark your first favorite book.','Common',m.favorites,1),
+  a('genre-wanderer','Collection','🗺️','Genre Wanderer','Own books across 5 different saved genres.','Rare',m.genres,5),
+  a('tbr-apprentice','Collection','🔮','TBR Apprentice','Have 5 owned books waiting on your TBR.','Common',m.tbr,5),
+  a('tbr-mountain','Collection','⛰️','TBR Mountain','Have 50 owned books waiting on your TBR.','Epic',m.tbr,50),
+  a('five-star','Reading','🌟','Five-Star Summoning','Give a book a 5-star rating.','Common',m.fiveStar,1),
+  a('critic','Reading','🧐','Critic in Residence','Rate 5 books.','Rare',m.rated,5),
+  a('shiny-thing','Collector','💎','Ooooh, Shiny','Own a copy with a saved collector feature.','Common',m.specialBooks,1),
+  a('collector-cabinet','Collector','🗝️','Collector’s Cabinet','Own 5 books with saved collector features.','Epic',m.specialBooks,5),
+  a('signed-sealed','Collector','✒️','Signed & Sealed','Catalog a signed copy.','Rare',m.signedBooks,1),
+  a('edition-goblin','Collector','👯','Edition Goblin','Catalog two different ISBN editions of the same work.','Epic',m.multiEdition,1),
+  a('series-initiate','Series','🧩','Series Initiate','Catalog your first book with a series.','Common',m.seriesBooks,1),
+  a('series-brainiac','Series','🧠','Series Brainiac','Confirm 3 full series lineups.','Rare',m.confirmedSeries,3),
+  a('series-slayer','Series','⚔️','Series Slayer','Own every confirmed volume in a series lineup.','Epic',m.completeSeries,1),
+  a('spotless','Goblin','🧹','The Goblin Has Standards','Reach a 100% clean owned library with at least 1 book.','Rare',(m.owned>0&&m.cleanPct===100)?1:0,1),
+  a('meticulous','Goblin','🧌','Meticulous Goblin','Keep 25 owned records passing every Cleanup check.','Epic',m.cleanCount,25)
+ ]
+}
+function achievementsPage(){
+ var m=achievementMetrics(),defs=achievementDefinitions(m),cat=state.achievementFilter||'All',unlocked=defs.filter(function(x){return x.unlocked}).length,pct=Math.round(unlocked/defs.length*100),cats=['All','Reading','Journal','Collection','Collector','Series','Goblin'];
+ var shown=cat==='All'?defs:defs.filter(function(x){return x.category===cat}),rare={Common:0,Rare:0,Epic:0,Legendary:0};defs.filter(function(x){return x.unlocked}).forEach(function(x){rare[x.rarity]=(rare[x.rarity]||0)+1});
+ function badge(x){var p=Math.max(0,Math.min(100,Math.round(x.current/x.goal*100))),num=(x.goal===1?(x.unlocked?'Earned':'Locked'):(Math.min(x.current,x.goal)+' / '+x.goal));return '<article class="achievement-card '+(x.unlocked?'unlocked':'locked')+' rarity-'+norm(x.rarity)+'"><div class="achievement-medal"><span>'+esc(x.icon)+'</span>'+(!x.unlocked?'<i>🔒</i>':'<i>✨</i>')+'</div><div class="achievement-body"><div class="achievement-top"><div><span class="achievement-rarity">'+esc(x.rarity)+'</span><h3>'+esc(x.name)+'</h3></div><b class="achievement-state">'+num+'</b></div><p>'+esc(x.desc)+'</p><div class="achievement-progress"><i style="width:'+p+'%"></i></div>'+(x.unlocked?'<small>🏆 Earned from your current saved Bookshop data.</small>':'<small>'+p+'% toward unlocking</small>')+'</div></article>'}
+ var tabs=cats.map(function(x){var n=x==='All'?defs.length:defs.filter(function(a){return a.category===x}).length;return'<button class="pill '+(cat===x?'active':'')+'" data-achievement-filter="'+esc(x)+'">'+esc(x)+' <b>'+n+'</b></button>'}).join('');
+ var finale=unlocked===defs.length?'<section class="achievement-finale"><div>👑✨📚✨👑</div><h2>The whole cabinet is glowing.</h2><p>You have earned every achievement currently hidden in Enchanted Bookshop. The vault has officially been robbed.</p></section>':'';
+ return '<section class="achievement-hero"><div><div class="eyebrow">🏅 V4.20 • ACHIEVEMENTS</div><h1 class="title">The Trophy Cabinet</h1><p class="sub">Milestones pulled from your <b>real library, journal, series, collector, and Cleanup data</b>. No made-up unlock dates. If the Bookshop can prove it, you earn it.</p></div><div class="achievement-crown">🏆</div></section><section class="achievement-summary"><div><b>'+unlocked+'</b><span>earned</span></div><div><b>'+defs.length+'</b><span>achievements</span></div><div><b>'+pct+'%</b><span>cabinet complete</span></div><div class="achievement-rarity-summary"><span>Common <b>'+rare.Common+'</b></span><span>Rare <b>'+rare.Rare+'</b></span><span>Epic <b>'+rare.Epic+'</b></span><span>Legendary <b>'+rare.Legendary+'</b></span></div></section><div class="achievement-master-progress"><i style="width:'+pct+'%"></i></div><div class="achievement-tabs">'+tabs+'</div><div class="achievement-grid">'+shown.map(badge).join('')+'</div>'+finale+'<div class="insight-note">✨ Achievements are recalculated from the data already saved in your Bookshop, so data-backed milestones can unlock retroactively. Progress changes naturally as your real library grows.</div>'
+}
+
 function render(){
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
@@ -476,6 +534,7 @@ function render(){
  else if(state.view==="tbr")c.innerHTML=shelf("📖 Want to Read",visible().filter(function(b){return b.status==="want-to-read"}));
  else if(state.view==="oracle")c.innerHTML=tbrOracle();
  else if(state.view==="cleanup")c.innerHTML=cleanupMode();
+ else if(state.view==="achievements")c.innerHTML=achievementsPage();
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
  else if(state.view==="backup")c.innerHTML=backup();
  else if(state.view==="sync")c.innerHTML=syncPage();
@@ -1272,7 +1331,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.17",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-17-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.20",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-20-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
@@ -1370,6 +1429,8 @@ function wirePage(){
  if(el('#oracleReset'))el('#oracleReset').onclick=function(){state.oracleMood='Anything';state.oracleGenre='Any';state.oracleLength='Any';state.oracleSpice='Any';state.oracleSeries='Any';state.oracleFavorites=false;state.oraclePickId='';save();render()};
  if(el('#oracleOpen'))el('#oracleOpen').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleOpen').getAttribute('data-id')});if(b)openCollectorBook(b)};
  if(el('#oracleStart'))el('#oracleStart').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleStart').getAttribute('data-id')});if(!b)return;b.status='currently-reading';b.updatedAt=now();save();state.view='journal';render();autoSyncMaybe()};
+
+ document.querySelectorAll('[data-achievement-filter]').forEach(function(btn){btn.onclick=function(){state.achievementFilter=btn.getAttribute('data-achievement-filter')||'All';save();render()}});
 
  document.querySelectorAll("[data-log-reading]").forEach(function(btn){btn.onclick=function(){var b=visible().find(function(x){return x.id===btn.getAttribute("data-log-reading")});if(b)openReadingSession(b)}});
  document.querySelectorAll("[data-edit-reading]").forEach(function(btn){btn.onclick=function(){var b=visible().find(function(x){return x.id===btn.getAttribute("data-edit-reading")});if(!b)return;var entry=[].concat(b.readingJournal||[]).find(function(x){return x.id===btn.getAttribute("data-entry-id")});if(entry)openReadingSession(b,entry)}});

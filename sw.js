@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-19-book-goblin-cleanup";
+const CACHE="enchanted-bookshop-v4-20-achievements";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.19",
- "./app.js?v=4.19",
- "./manifest.json?v=4.19",
- "./icon-192.png?v=4.19",
+ "./styles.css?v=4.20",
+ "./app.js?v=4.20",
+ "./manifest.json?v=4.20",
+ "./icon-192.png?v=4.20",
  "./icon-512.png"
 ];
 
