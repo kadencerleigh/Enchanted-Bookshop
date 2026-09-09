@@ -1323,7 +1323,17 @@ function wirePage(){
  document.querySelectorAll("[data-goto]").forEach(function(b){b.onclick=function(){state.view=b.getAttribute("data-goto");save();render()}});
  if(el("#newWish"))el("#newWish").onclick=function(){openWish()};
 
- if(el('#oracleConsult'))el('#oracleConsult').onclick=function(){['Mood','Genre','Length','Spice','Series'].forEach(function(k){state['oracle'+k]=el('#oracle'+k).value});state.oracleFavorites=el('#oracleFavorites').checked;oraclePick(true)};
+ function applyOracleControls(live){
+  ['Mood','Genre','Length','Spice','Series'].forEach(function(k){var node=el('#oracle'+k);if(node)state['oracle'+k]=node.value});
+  if(el('#oracleFavorites'))state.oracleFavorites=el('#oracleFavorites').checked;
+  var pool=oracleFiltered();
+  if(state.oraclePickId&&!pool.some(function(b){return b.id===state.oraclePickId}))state.oraclePickId='';
+  save();
+  if(live)render();
+ }
+ ['Mood','Genre','Length','Spice','Series'].forEach(function(k){var node=el('#oracle'+k);if(node)node.onchange=function(){applyOracleControls(true)}});
+ if(el('#oracleFavorites'))el('#oracleFavorites').onchange=function(){applyOracleControls(true)};
+ if(el('#oracleConsult'))el('#oracleConsult').onclick=function(){applyOracleControls(false);oraclePick(true)};
  if(el('#oracleReroll'))el('#oracleReroll').onclick=function(){oraclePick(true)};
  if(el('#oracleReset'))el('#oracleReset').onclick=function(){state.oracleMood='Anything';state.oracleGenre='Any';state.oracleLength='Any';state.oracleSpice='Any';state.oracleSeries='Any';state.oracleFavorites=false;state.oraclePickId='';save();render()};
  if(el('#oracleOpen'))el('#oracleOpen').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleOpen').getAttribute('data-id')});if(b)openCollectorBook(b)};
