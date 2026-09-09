@@ -2,10 +2,10 @@ const CACHE="enchanted-bookshop-v4-23-bookshop-atmospheres";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.23.1",
- "./app.js?v=4.23.1",
- "./manifest.json?v=4.23.1",
- "./icon-192.png?v=4.23.1",
+ "./styles.css?v=4.23.2",
+ "./app.js?v=4.23.2",
+ "./manifest.json?v=4.23.2",
+ "./icon-192.png?v=4.23.2",
  "./icon-512.png"
 ];
 
