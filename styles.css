@@ -1288,3 +1288,10 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
  .shelf-card .shelf-card-actions{display:grid;grid-template-columns:1fr 1fr}
  .shelf-card .shelf-card-actions button{width:100%}
 }
+
+/* V4.26.8 — Want to Own view/edit actions */
+.wish-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:560px){
+ .wish-card-actions{display:grid;grid-template-columns:1fr 1fr}
+ .wish-card-actions button{width:100%}
+}

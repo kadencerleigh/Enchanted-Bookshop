@@ -1,0 +1,25 @@
+ENCHANTED BOOKSHOP V4.26.8 — WANT TO OWN VIEW/EDIT PATCH
+
+FIXED
+• Want to Own cards now show:
+  📕 View Book
+  ✏️ Edit
+• Tapping a Want to Own card now opens Book Detail instead of immediately opening the wish editor.
+• Edit still opens the existing Want to Own editor.
+• View Book opens the same Book Detail screen used elsewhere.
+
+PRESERVED
+• Want to Read View/Edit fix
+• Reading-status independence
+• Want-to-own / owned separation
+• Owned-copy truth
+• Title/author search
+• Unknown spice ≠ Clean
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
