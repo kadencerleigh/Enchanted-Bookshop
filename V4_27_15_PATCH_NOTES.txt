@@ -1,0 +1,36 @@
+ENCHANTED BOOKSHOP V4.27.15 — CONFIRMED LINEUP LIBRARY MATCHING FIX
+
+ROOT CAUSE
+The saved Series page built a per-series bucket from owned catalog records whose stored
+series name exactly matched the confirmed series name. A real cataloged copy could therefore
+be absent from that bucket even when its title exactly matched a confirmed lineup entry.
+
+TARGETED FIX
+• Confirmed lineup catalog matching now checks explicitly owned local catalog records by
+  normalized title when the per-series bucket misses them.
+• A local record only counts as cataloged when owned === true.
+• Existing "owned but needs cataloging" flags remain supported for lineup entries with no
+  actual catalog record.
+• Generic series ownership checks now reuse the same truth-aware matcher.
+
+EXPECTED A GOOD GIRL'S GUIDE TO MURDER STATE
+• #0.5 Kill Joy — Missing
+• #1 A Good Girl's Guide to Murder — Owned • needs cataloging
+• #2 Good Girl Bad Blood — Owned • needs cataloging
+• #3 As Good As Dead — Cataloged
+• Header: 3 of 4 owned • 1 cataloged • 1 missing
+• Main story: 3/3
+• Extras: 0/1
+• Next missing: #0.5 Kill Joy
+
+PRESERVED
+• V4.27.14 discovery lineup logic
+• Public metadata never implies ownership
+• owned === true required for a real local cataloged copy
+• Want to Read / Want to Own / ownership independence
+• Desktop modal/button fixes
+• Backup payload compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
