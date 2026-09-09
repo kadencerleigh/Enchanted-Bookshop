@@ -1,0 +1,27 @@
+ENCHANTED BOOKSHOP V4.26.5 — OWNED COPY TRUTH PATCH
+
+Real-world test exposed a Collector-layer bug:
+a non-owned Want-to-Own work could still appear under “Your editions” as “My copy.”
+
+FIXED
+• Collector workCopiesFor() now includes ONLY records with owned === true.
+• Non-owned wishlist/TBR works cannot appear as physical copies or owned editions.
+• Public discovery edition metadata on a non-owned record is moved to workMetadata
+  and the owned-edition placeholder is removed.
+• Known bibliographic format may still display at a glance without claiming ownership.
+• Existing accidental non-owned placeholders are hidden from Collector immediately
+  and repaired when their Book Detail is opened.
+
+PRESERVED
+• No reading status independence
+• Want to Own separate from TBR
+• V4.26.3 title/author search
+• Unknown spice ≠ Clean
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

@@ -858,7 +858,7 @@ async function repairMissingCoverFromEditor(book,button){
 // Existing saved book records remain the source of truth; no migration is required.
 function sameWork(a,b){return !!(a&&b&&norm(a.title)===norm(b.title)&&norm(a.author||'')===norm(b.author||''))}
 function editionKey(b){var e=(b&&b.edition)||{},isbn=cleanISBN(e.isbn||'');return isbn?('isbn:'+isbn):['meta',norm(e.name||''),norm(e.format||''),norm(e.publisher||''),String(e.publicationDate||'')].join('|')}
-function workCopiesFor(b){return visible().filter(function(x){return sameWork(x,b)})}
+function workCopiesFor(b){return visible().filter(function(x){return sameWork(x,b)&&x.owned===true})}
 function editionGroupsFor(b){var groups={};workCopiesFor(b).forEach(function(x){var k=editionKey(x);if(!groups[k])groups[k]=[];groups[k].push(x)});return Object.keys(groups).map(function(k){return groups[k]})}
 function collectorCover(b){return '<div class="collector-cover">'+(b&&b.cover?'<img src="'+esc(b.cover)+'" alt="">':'<div class="collector-cover-empty">☾<br><span>'+esc(b&&b.title||'Book')+'</span></div>')+'</div>'}
 function collectorChips(items){return uniqText(items||[]).map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')}
@@ -891,7 +891,7 @@ function openCollectorBook(b){
  '<div><span>Genres</span><b class="detail-genre-chips">'+(genres.length?collectorChips(genres):'<em>Not set</em>')+'</b></div>'+
  '<div><span>Spice</span><b>'+detailSpice(b.spice,b.spiceConfidence)+'</b></div>'+
  '<div><span>Length</span><b>'+(pages?pages+' pages'+(detailLength(pages)?' • '+detailLength(pages):''):'Unknown')+'</b></div>'+
- '<div><span>Format</span><b>'+esc(e.format||'Unknown')+'</b></div>'+
+ '<div><span>Format</span><b>'+esc(e.format||wm.format||'Unknown')+'</b></div>'+
  '<div><span>Status</span><b>'+esc(status)+'</b></div><div><span>Rating</span><b>'+rating+'</b></div></div></section>'+
  (latest&&(latest.reaction||latest.mood||latest.date)?'<section class="detail-memory"><div class="eyebrow">💬 LATEST READING MEMORY</div>'+(latest.reaction?'<blockquote>'+esc(latest.reaction)+'</blockquote>':'')+'<div class="muted">'+esc([latest.date,latest.mood].filter(Boolean).join(' • '))+'</div></section>':'')+
  (b.edition?'<div class="collector-section-head detail-editions-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">':'<section class="detail-memory"><div class="eyebrow">📖 WORK SAVED</div><h3>No physical copy yet</h3><p class="muted">This story is saved in your Bookshop, but it is not marked as owned. No edition or physical copy has been created.</p></section>');
@@ -1030,9 +1030,14 @@ function repairV426WorkOnlyPlaceholder(b){
  if(!b||b.owned===true||!b.edition)return false;
  var e=b.edition||{};
  var publicDiscovery=b.intelligence===true&&(b.intelligenceSource==="Google Books"||b.intelligenceSource==="Open Library"||b.intelligenceSource==="Public book metadata");
- var noEditionIdentity=!String(e.isbn||"").trim()&&!String(e.format||"").trim()&&!String(e.name||"").trim()&&!String(e.printing||"").trim()&&!(Array.isArray(e.special)&&e.special.length);
- if(publicDiscovery&&noEditionIdentity){
-  b.workMetadata={publisher:e.publisher||"",publicationDate:e.publicationDate||"",pages:e.pages||""};
+ if(publicDiscovery){
+  b.workMetadata=Object.assign({},b.workMetadata||{},{
+   publisher:(b.workMetadata&&b.workMetadata.publisher)||e.publisher||"",
+   publicationDate:(b.workMetadata&&b.workMetadata.publicationDate)||e.publicationDate||"",
+   pages:(b.workMetadata&&b.workMetadata.pages)||e.pages||"",
+   format:(b.workMetadata&&b.workMetadata.format)||e.format||"",
+   editionName:(b.workMetadata&&b.workMetadata.editionName)||e.name||""
+  });
   b.edition=null;b.updatedAt=now();save();return true
  }
  return false
@@ -1060,7 +1065,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26.4 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26.5 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};
