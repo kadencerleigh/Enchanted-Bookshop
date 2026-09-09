@@ -1,0 +1,47 @@
+ENCHANTED BOOKSHOP V4.27.2 — SERIES DISCOVERY STRUCTURED SEARCH PATCH
+
+SECOND REAL-WORLD FAILURE
+V4.27.1 still returned only the user's local #3 for:
+A Good Girl's Guide to Murder — Holly Jackson.
+
+THIS PATCH CHANGES THE DISCOVERY MECHANISM
+Instead of relying mostly on generic text search, Open Library discovery now
+tries dedicated structured series lookups:
+
+1. series=<series name> + author=<author>
+2. series=<series name> without author
+3. q=series:"<series name>"
+4. author=<author> catalog fallback, accepting only matching structured series labels
+
+This is materially different from V4.27/V4.27.1's query/filter tweaks.
+
+MATCHING SAFETY
+• Structured labels like "Series Name #2" or "Series Name (Book 2)" are accepted.
+• Loose unrelated partial matches are rejected.
+• User confirmation is still required before a lineup is saved.
+
+DIAGNOSTICS
+If discovery is still weak/incomplete, results now include a collapsed
+“Discovery diagnostics” section showing how many results each internet path
+returned. This means another failure can be diagnosed from the phone instead
+of patched blindly.
+
+TRUTH RULES RETAINED
+• Discovery never marks ownership.
+• Discovery never changes reading status.
+• Discovery never changes Want to Own.
+• Nothing saves until Confirm lineup.
+
+PRESERVED
+• V4.26.8 Want to Own View/Edit
+• V4.26.7 Want to Read View/Edit
+• Owned-copy truth
+• Reading-status independence
+• Challenge Cloud Sync
+• Book Detail
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

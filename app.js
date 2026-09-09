@@ -276,7 +276,7 @@ function series(){
  seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){if(!map[s.name])map[s.name]=[]});
  var names=Object.keys(map).sort(),totalSeries=names.length,completeSeries=0,totalMissing=0,totalNeedCatalog=0;
  names.forEach(function(name){var a=map[name],cat=getSeries(name);if(!cat)return;(cat.books||[]).forEach(function(x){var st=seriesState(x,a);if(st==="missing")totalMissing++;if(st==="owned")totalNeedCatalog++});if(cat.books&&cat.books.length&&cat.books.every(function(x){return ownedSeriesEntry(x,a)}))completeSeries++});
- var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.27.1 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
+ var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.27.2 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
  if(!names.length)return hero+'<div class="empty series-discovery-empty"><b>No series saved yet.</b><div class="muted">Search by series name and optional author. Nothing becomes owned, Want to Read, or Want to Own unless you explicitly choose that elsewhere.</div></div>';
  return hero+'<div class="series-brain-grid">'+names.map(function(name){
   var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
@@ -366,27 +366,67 @@ async function googleSeriesCandidates(name,seedAuthors){
 }
 async function openLibrarySearch(q){
  try{
-  var u="https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=100&fields=title,series,subtitle,author_name",r=await cachedFetchJSON(u);
+  var u="https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=100&fields=key,title,subtitle,series,author_name,first_publish_year",r=await cachedFetchJSON(u);
   return r&&r.ok?((r.data&&r.data.docs)||[]):[]
  }catch(e){return[]}
 }
-async function openLibrarySeriesCandidates(name,seedAuthors){
- var queries=[name];seedAuthors.forEach(function(a){queries.push(name+' '+a)});
- var out=[],seedNorm=seedAuthors.map(norm);
- for(var qi=0;qi<queries.length;qi++){
-  var docs=await openLibrarySearch(queries[qi]);
-  docs.forEach(function(d){
-   var ss=Array.isArray(d.series)?d.series:[d.series],
-       matched=(ss||[]).filter(function(x){return x&&norm(x).indexOf(norm(name))>=0}),
-       authors=d.author_name||[],
-       authorHit=!seedAuthors.length||authors.some(function(a){return seedNorm.indexOf(norm(a))>=0});
-   if(!authorHit)return;
-   var titleBlob=(d.title||"")+" "+(d.subtitle||""),titleHit=norm(titleBlob).indexOf(norm(name))>=0;
-   if(!matched.length&&!titleHit)return;
-   var raw=matched.length?String(matched[0]):"",no=seriesNumberFromText(raw,name)||seriesNumberFromText(titleBlob,name);
-   if(!no&&norm(d.title||"")===norm(name))no="1";
-   out.push({number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:authors})
+async function openLibrarySearchParams(params){
+ try{
+  var bits=[];
+  Object.keys(params||{}).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&String(params[k]).trim()!=="")bits.push(encodeURIComponent(k)+"="+encodeURIComponent(params[k]))});
+  bits.push("limit=100");
+  bits.push("fields="+encodeURIComponent("key,title,subtitle,series,author_name,first_publish_year"));
+  var r=await cachedFetchJSON("https://openlibrary.org/search.json?"+bits.join("&"));
+  return r&&r.ok?((r.data&&r.data.docs)||[]):[]
+ }catch(e){return[]}
+}
+function seriesLabelMatches(raw,name){
+ var a=norm(raw||""),b=norm(name||"");
+ if(!a||!b)return false;
+ if(a===b)return true;
+ /* Accept labels such as "Series Name #2", "Series Name 2",
+    or "Series Name (Book 2)" while avoiding unrelated partial matches. */
+ var stripped=a.replace(/\b(?:book|volume|vol|part)\b/g," ").replace(/\b\d+(?:\.\d+)?\b/g," ").replace(/\s+/g," ").trim();
+ if(stripped===b)return true;
+ return a.indexOf(b)===0&&a.length<=b.length+24
+}
+function openLibraryCandidateFromDoc(d,name,seedAuthors){
+ var authors=d.author_name||[],seedNorm=(seedAuthors||[]).map(norm),
+     authorHit=!seedNorm.length||authors.some(function(a){return seedNorm.indexOf(norm(a))>=0});
+ if(!authorHit)return null;
+ var ss=Array.isArray(d.series)?d.series:[d.series],matched=(ss||[]).filter(function(x){return x&&seriesLabelMatches(x,name)});
+ if(!matched.length)return null;
+ var raw=String(matched[0]||""),no=seriesNumberFromText(raw,name)||seriesNumberFromText((d.title||"")+" "+(d.subtitle||""),name);
+ if(!no&&norm(d.title||"")===norm(name))no="1";
+ return{number:no,title:d.title||"",type:guessSeriesType(d.title||"",no),source:"Open Library",authors:authors}
+}
+async function openLibrarySeriesCandidates(name,seedAuthors,diag){
+ diag=diag||{};
+ var out=[],seenDoc={};
+ function consume(docs){
+  (docs||[]).forEach(function(d){
+   var dk=(d.key||"")+"|"+norm(d.title||"");
+   if(seenDoc[dk])return;seenDoc[dk]=1;
+   var c=openLibraryCandidateFromDoc(d,name,seedAuthors);
+   if(c)out.push(c)
   })
+ }
+ /* 1. Structured series parameter — strongest path. */
+ var structured=await openLibrarySearchParams({series:name,author:(seedAuthors&&seedAuthors[0])||""});
+ diag.olStructured=(structured||[]).length;consume(structured);
+
+ /* 2. Structured series without author in case author metadata varies by edition. */
+ var structuredLoose=await openLibrarySearchParams({series:name});
+ diag.olStructuredLoose=(structuredLoose||[]).length;consume(structuredLoose);
+
+ /* 3. Lucene-style series query. */
+ var seriesQ=await openLibrarySearch('series:"'+name+'"');
+ diag.olSeriesQuery=(seriesQ||[]).length;consume(seriesQ);
+
+ /* 4. Author catalog fallback. Only structured series labels are accepted here. */
+ if(seedAuthors&&seedAuthors.length){
+  var authorDocs=await openLibrarySearchParams({author:seedAuthors[0]});
+  diag.olAuthorCatalog=(authorDocs||[]).length;consume(authorDocs)
  }
  return out
 }
@@ -407,7 +447,7 @@ function seriesDiscoveryConfidence(results){
  return{label:score>=5?"High":score>=3?"Review carefully":"Low",className:score>=5?"good":score>=3?"warn":"low",numbered:numbered,sources:Object.keys(sources),count:a.length}
 }
 function openSeriesDiscovery(){
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.1 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.2 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
  el("#modal").classList.remove("hidden");
  el("#runSeriesDiscovery").onclick=function(){var name=(el("#seriesDiscoveryName").value||"").trim(),author=(el("#seriesDiscoveryAuthor").value||"").trim();if(!name){alert("Enter the series name first.");return}findSeriesLineup(name,author)};
  el("#seriesDiscoveryName").onkeydown=function(e){if(e.key==="Enter")el("#runSeriesDiscovery").click()};
@@ -416,17 +456,20 @@ function openSeriesDiscovery(){
 async function findSeriesLineup(name,authorHint){
  name=String(name||"").trim();authorHint=String(authorHint||"").trim();
  if(!name)return;
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.1 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.2 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
  var local=owned().filter(function(b){return norm(b.series)===norm(name)}),seedAuthors=[];
  if(authorHint)seedAuthors.push(authorHint);
  local.forEach(function(b){if(b.author&&!seedAuthors.some(function(a){return norm(a)===norm(b.author)}))seedAuthors.push(b.author)});
  var existing=getSeries(name);if(existing&&existing.authorHint&&!seedAuthors.some(function(a){return norm(a)===norm(existing.authorHint)}))seedAuthors.push(existing.authorHint);
- var google=await googleSeriesCandidates(name,seedAuthors),ol=await openLibrarySeriesCandidates(name,seedAuthors);
+ var discoveryDiag={google:0,olStructured:0,olStructuredLoose:0,olSeriesQuery:0,olAuthorCatalog:0};
+ var google=await googleSeriesCandidates(name,seedAuthors);discoveryDiag.google=google.length;
+ var ol=await openLibrarySeriesCandidates(name,seedAuthors,discoveryDiag);
  var known=local.map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",source:"Your library",authors:[b.author||""]}}),results=cleanSeriesResults(google.concat(ol,known),name);
  if(!results.length){el("#modalBody").innerHTML='<div class="eyebrow">🔎 SERIES DISCOVERY 3.0</div><h1 class="title">No confident lineup found</h1><p class="sub">Public metadata did not give Enchanted Bookshop a usable lineup for <b>'+esc(name)+'</b>. Nothing was saved or changed.</p><div class="actions"><button class="primary" id="retrySeriesDiscovery">🔎 Try another search</button><button class="pill" id="fallbackSeriesManual">✏️ Enter lineup manually</button></div>';el("#retrySeriesDiscovery").onclick=openSeriesDiscovery;el("#fallbackSeriesManual").onclick=function(){openSeriesEditor(name)};return}
  var conf=seriesDiscoveryConfidence(results),incomplete=results.length<2,lines=results.map(function(x){return[x.number,x.title,x.type].join(" | ")}).join("\n"),warning=incomplete?'<div class="guardian"><b>⚠️ Lineup may be incomplete</b><div class="muted">Only '+results.length+' possible title was found. Review carefully.</div></div>':'';
  var src=conf.sources.length?conf.sources.join(" + "):"public metadata";
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.1 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
+ var diagBox=(incomplete||conf.label==="Low")?'<details class="series-discovery-diag"><summary>🔧 Discovery diagnostics</summary><div class="tiny">Google candidates: '+discoveryDiag.google+'<br>Open Library series match: '+discoveryDiag.olStructured+'<br>Open Library loose series match: '+discoveryDiag.olStructuredLoose+'<br>Open Library series query: '+discoveryDiag.olSeriesQuery+'<br>Open Library author catalog: '+discoveryDiag.olAuthorCatalog+'</div></details>':'';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.2 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
  el("#cancelSeriesSuggestion").onclick=closeModal;
  el("#retrySeriesSuggestion").onclick=function(){openSeriesDiscovery();var n=el("#seriesDiscoveryName");if(n)n.value=name;var a=el("#seriesDiscoveryAuthor");if(a)a.value=authorHint||seedAuthors[0]||""};
  el("#confirmSeriesSuggestion").onclick=function(){
@@ -1176,7 +1219,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.27.1 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.27.2 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};

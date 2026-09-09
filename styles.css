@@ -1310,3 +1310,8 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
 @media(max-width:700px){
  .series-discovery-confidence{grid-template-columns:1fr 1fr}
 }
+
+/* V4.27.2 — Series Discovery diagnostics */
+.series-discovery-diag{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.series-discovery-diag summary{cursor:pointer;font-weight:700}
+.series-discovery-diag .tiny{margin-top:8px;line-height:1.6}
