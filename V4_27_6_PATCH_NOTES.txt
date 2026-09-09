@@ -1,0 +1,21 @@
+ENCHANTED BOOKSHOP V4.27.6 — FOCUSED SERIES QUERY PATCH
+
+SERIES DISCOVERY
+• Keeps noisy 31-result structured/author paths locked behind strict per-document series evidence.
+• Author catalog remains diagnostics-only.
+• A small exact quoted Open Library series-query result set can now serve as direct series membership evidence.
+• Author matching is still required when an author hint is supplied.
+• Existing dedupe, numbering/type cleanup, local-copy precedence, and user confirmation remain in place.
+• Nothing marks a title owned, Want to Read, or Want to Own.
+
+PRESERVED
+• V4.27.5 desktop modal positioning fix
+• Desktop button handling
+• Ownership truth / reading-intent independence
+• Want to Read / Want to Own View/Edit
+• Book Detail, atmospheres, challenge sync
+• Backup payload compatibility remains 4.22.1
+• Mobile More guard and desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
