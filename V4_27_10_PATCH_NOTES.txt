@@ -1,0 +1,36 @@
+ENCHANTED BOOKSHOP V4.27.10 — COLLECTION-EVIDENCE SERIES PATCH
+
+WHAT V4.27.9 PROVED
+Open Library's exact series query returned:
+• A legitimate individual series title
+• A collection
+• A four-book collection-set title that explicitly named the missing member books
+
+FIX
+• Collection/bundle records are still NOT proposed as series volumes.
+• When a collection title explicitly lists member titles, Series Discovery can extract
+  those individual titles as evidence.
+• Extracted titles pass through the existing dedupe/cleanup pipeline.
+• Local catalog data still wins when the same work is already known locally.
+• Existing numbering/type cleanup is applied after extraction.
+• Diagnostics now show which member titles were extracted from collection evidence.
+
+TRUTH RULES PRESERVED
+• Collection evidence never marks a book owned.
+• It never adds Want to Read or Want to Own.
+• User must still review and confirm the lineup.
+• Public metadata is not ownership.
+
+PRESERVED
+• V4.27.5 desktop modal fix
+• Desktop button fix
+• Always-visible discovery diagnostics
+• Owned-copy truth
+• Reading-status independence
+• Want to Read / Want to Own View/Edit
+• Challenge sync
+• Backup compatibility remains 4.22.1
+• Atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
