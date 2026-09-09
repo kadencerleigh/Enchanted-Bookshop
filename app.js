@@ -401,6 +401,40 @@ function openReadingSession(b,existing){
  form.onsubmit=function(ev){ev.preventDefault();var f=new FormData(ev.target),entry={id:existing?existing.id:'r_'+Date.now().toString(36),date:f.get('sessionDate'),page:f.get('sessionPage'),percent:f.get('sessionPercent'),minutes:f.get('sessionMinutes'),mood:f.get('sessionMood'),reaction:f.get('sessionReaction'),quote:f.get('sessionQuote'),notes:f.get('sessionNotes'),createdAt:existing&&existing.createdAt?existing.createdAt:now(),updatedAt:now()};b.readingJournal=[].concat(b.readingJournal||[]);if(existing){var ix=b.readingJournal.findIndex(function(x){return x.id===existing.id});if(ix>=0)b.readingJournal[ix]=entry;else b.readingJournal.push(entry)}else b.readingJournal.push(entry);recalcReadingProgress(b);b.updatedAt=now();save();closeModal();state.view='journal';render();autoSyncMaybe()};
  if(existing&&el('#deleteReadingEntry'))el('#deleteReadingEntry').onclick=function(){if(!confirm('Delete this reading journal entry? This cannot be undone.'))return;b.readingJournal=[].concat(b.readingJournal||[]).filter(function(x){return x.id!==existing.id});recalcReadingProgress(b);b.updatedAt=now();save();closeModal();state.view='journal';render();autoSyncMaybe()}
 }
+
+
+/* V4.18 — TBR Oracle */
+function oracleCandidates(){
+ var seen={};return owned().filter(function(b){return b.status==="want-to-read"}).filter(function(b){var k=norm(b.title)+"|"+norm(b.author||"");if(seen[k])return false;seen[k]=1;return true})
+}
+function oracleGenres(){var s={};oracleCandidates().forEach(function(b){(b.genres||[]).forEach(function(g){if(g)s[g]=1})});return Object.keys(s).sort()}
+function oracleMoodMatch(b,mood){
+ if(!mood||mood==="Anything")return true;var blob=[].concat(b.genres||[],b.tags||[],[b.title||""]).join(" ").toLowerCase();
+ var map={"Dark & dangerous":["dark romance","horror","thriller","mafia","dystopian"],"Romantic":["romance","romantasy","love"],"Mysterious":["mystery","thriller","crime","suspense"],"Magical":["fantasy","romantasy","paranormal","magic","witch"],"Emotional":["contemporary","realistic fiction","memoir","literary"]};
+ return (map[mood]||[]).some(function(x){return blob.indexOf(x)>=0})
+}
+function oracleFiltered(){
+ var pool=oracleCandidates(),genre=state.oracleGenre||"Any",length=state.oracleLength||"Any",sp=state.oracleSpice||"Any",series=state.oracleSeries||"Any",fav=!!state.oracleFavorites;
+ return pool.filter(function(b){
+  if(genre!=="Any"&&(b.genres||[]).indexOf(genre)<0)return false;
+  var pages=parseInt(b.edition&&b.edition.pages,10)||0;
+  if(length==="Short"&&(!pages||pages>300))return false;if(length==="Medium"&&(!pages||pages<301||pages>450))return false;if(length==="Long"&&(!pages||pages<451))return false;
+  var spiceVal=+b.spice||0;if(sp==="Clean / mild"&&spiceVal>2)return false;if(sp==="Spicy"&&spiceVal<3)return false;if(sp==="Very spicy"&&spiceVal<4)return false;
+  if(series==="Series"&&!b.series)return false;if(series==="Standalone"&&b.series)return false;if(fav&&!b.favorite)return false;return true
+ })
+}
+function oraclePick(force){
+ var pool=oracleFiltered(),mood=state.oracleMood||"Anything";if(!pool.length){state.oraclePickId="";save();render();return}
+ var preferred=pool.filter(function(b){return oracleMoodMatch(b,mood)}),choices=preferred.length?preferred:pool,last=state.oraclePickId||"";
+ if(force&&choices.length>1)choices=choices.filter(function(b){return b.id!==last});var b=choices[Math.floor(Math.random()*choices.length)];state.oraclePickId=b.id;save();render()
+}
+function tbrOracle(){
+ var pool=oracleFiltered(),pick=visible().find(function(b){return b.id===state.oraclePickId&&pool.some(function(x){return x.id===b.id})}),genres=oracleGenres();
+ function opts(arr,val){return arr.map(function(x){return'<option '+(x===val?'selected':'')+'>'+esc(x)+'</option>'}).join('')}
+ var result='';if(pick){var pg=parseInt(pick.edition&&pick.edition.pages,10)||0,reasons=[];if(pick.series)reasons.push('🔮 '+pick.series+(pick.seriesNo?' #'+pick.seriesNo:''));if((pick.genres||[]).length)reasons.push('🌙 '+pick.genres.slice(0,2).join(' • '));if(pg)reasons.push('📄 '+pg+' pages');if(+pick.spice)reasons.push('🌶️ '+pick.spice+'/5');if(pick.favorite)reasons.push('⭐ Favorite');result='<section class="oracle-result"><div class="oracle-glow">✨</div><div class="oracle-cover">'+(pick.cover?'<img src="'+esc(pick.cover)+'" alt="">':'📖')+'</div><div class="oracle-result-body"><div class="eyebrow">THE ORACLE HAS SPOKEN</div><h2>'+esc(pick.title)+'</h2><p class="oracle-author">'+esc(pick.author||'')+'</p><div class="oracle-reasons">'+reasons.map(function(x){return'<span>'+esc(x)+'</span>'}).join('')+'</div><p class="oracle-whisper">'+((state.oracleMood&&state.oracleMood!=="Anything"&&oracleMoodMatch(pick,state.oracleMood))?'It heard your “'+esc(state.oracleMood)+'” mood and found this on your own shelves.':'Chosen from the unread books you already own. No guilt. Just vibes.')+'</p><div class="actions"><button class="primary" id="oracleStart" data-id="'+esc(pick.id)+'">📖 Start this book</button><button class="pill" id="oracleOpen" data-id="'+esc(pick.id)+'">View book</button><button class="pill" id="oracleReroll">🎲 Tempt me again</button></div></div></section>'}else result='<div class="oracle-empty">'+(pool.length?'The cards are shuffled. Tap <b>Consult the Oracle</b>. 🔮':'No unread owned books match those filters. Loosen one of the spells and try again. ✨')+'</div>';
+ return '<section class="oracle-hero"><div><div class="eyebrow">🔮 V4.18 • TBR ORACLE</div><h1 class="title">What the fuck do I read?</h1><p class="sub">Tell the Bookshop your current vibe. The Oracle will choose from books you <b>actually own</b> and have marked Want to Read.</p></div><div class="oracle-orb">🔮</div></section><section class="oracle-controls"><div class="oracle-field"><label>Mood</label><select id="oracleMood">'+opts(['Anything','Dark & dangerous','Romantic','Mysterious','Magical','Emotional'],state.oracleMood||'Anything')+'</select></div><div class="oracle-field"><label>Genre</label><select id="oracleGenre">'+opts(['Any'].concat(genres),state.oracleGenre||'Any')+'</select></div><div class="oracle-field"><label>Length</label><select id="oracleLength">'+opts(['Any','Short','Medium','Long'],state.oracleLength||'Any')+'</select></div><div class="oracle-field"><label>Spice</label><select id="oracleSpice">'+opts(['Any','Clean / mild','Spicy','Very spicy'],state.oracleSpice||'Any')+'</select></div><div class="oracle-field"><label>Series?</label><select id="oracleSeries">'+opts(['Any','Series','Standalone'],state.oracleSeries||'Any')+'</select></div><label class="oracle-check"><input type="checkbox" id="oracleFavorites" '+(state.oracleFavorites?'checked':'')+'> ⭐ Favorites only</label><div class="oracle-pool"><b>'+pool.length+'</b><span>books in the cauldron</span></div><button class="primary oracle-consult" id="oracleConsult">🔮 Consult the Oracle</button><button class="pill" id="oracleReset">↻ Clear spells</button></section>'+result+'<div class="insight-note">The Oracle only uses information already saved in your Bookshop. Mood is a preference: if none of the filtered books match that vibe, it still chooses from the rest of your matching shelf instead of inventing metadata.</div>'
+}
+
 function render(){
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
@@ -412,6 +446,7 @@ function render(){
  else if(state.view==="journal")c.innerHTML=readingJournal2();
  else if(state.view==="insights")c.innerHTML=readingInsights();
  else if(state.view==="tbr")c.innerHTML=shelf("📖 Want to Read",visible().filter(function(b){return b.status==="want-to-read"}));
+ else if(state.view==="oracle")c.innerHTML=tbrOracle();
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
  else if(state.view==="backup")c.innerHTML=backup();
  else if(state.view==="sync")c.innerHTML=syncPage();
@@ -1287,6 +1322,13 @@ function wirePage(){
  document.querySelectorAll('[data-view-jump]').forEach(function(btn){btn.onclick=function(){state.view=btn.getAttribute('data-view-jump');save();render()}});
  document.querySelectorAll("[data-goto]").forEach(function(b){b.onclick=function(){state.view=b.getAttribute("data-goto");save();render()}});
  if(el("#newWish"))el("#newWish").onclick=function(){openWish()};
+
+ if(el('#oracleConsult'))el('#oracleConsult').onclick=function(){['Mood','Genre','Length','Spice','Series'].forEach(function(k){state['oracle'+k]=el('#oracle'+k).value});state.oracleFavorites=el('#oracleFavorites').checked;oraclePick(true)};
+ if(el('#oracleReroll'))el('#oracleReroll').onclick=function(){oraclePick(true)};
+ if(el('#oracleReset'))el('#oracleReset').onclick=function(){state.oracleMood='Anything';state.oracleGenre='Any';state.oracleLength='Any';state.oracleSpice='Any';state.oracleSeries='Any';state.oracleFavorites=false;state.oraclePickId='';save();render()};
+ if(el('#oracleOpen'))el('#oracleOpen').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleOpen').getAttribute('data-id')});if(b)openCollectorBook(b)};
+ if(el('#oracleStart'))el('#oracleStart').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleStart').getAttribute('data-id')});if(!b)return;b.status='currently-reading';b.updatedAt=now();save();state.view='journal';render();autoSyncMaybe()};
+
  document.querySelectorAll("[data-log-reading]").forEach(function(btn){btn.onclick=function(){var b=visible().find(function(x){return x.id===btn.getAttribute("data-log-reading")});if(b)openReadingSession(b)}});
  document.querySelectorAll("[data-edit-reading]").forEach(function(btn){btn.onclick=function(){var b=visible().find(function(x){return x.id===btn.getAttribute("data-edit-reading")});if(!b)return;var entry=[].concat(b.readingJournal||[]).find(function(x){return x.id===btn.getAttribute("data-entry-id")});if(entry)openReadingSession(b,entry)}});
  document.querySelectorAll("[data-delete-reading]").forEach(function(btn){btn.onclick=function(){var b=visible().find(function(x){return x.id===btn.getAttribute("data-delete-reading")});if(!b)return;var id=btn.getAttribute("data-entry-id");if(!confirm('Delete this reading journal entry? This cannot be undone.'))return;b.readingJournal=[].concat(b.readingJournal||[]).filter(function(x){return x.id!==id});recalcReadingProgress(b);b.updatedAt=now();save();render();autoSyncMaybe()}});

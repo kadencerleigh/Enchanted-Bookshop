@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-17-reading-insights";
+const CACHE="enchanted-bookshop-v4-18-tbr-oracle";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.17",
- "./app.js?v=4.17",
- "./manifest.json?v=4.17",
- "./icon-192.png?v=4.17",
+ "./styles.css?v=4.18",
+ "./app.js?v=4.18",
+ "./manifest.json?v=4.18",
+ "./icon-192.png?v=4.18",
  "./icon-512.png"
 ];
 
