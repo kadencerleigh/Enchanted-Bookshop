@@ -1,0 +1,29 @@
+ENCHANTED BOOKSHOP V4.27.9 — SERIES RAW-DIAGNOSTIC PATCH
+
+PURPOSE
+This build intentionally does not guess at another filtering fix.
+It exposes what Open Library's exact quoted series query is actually returning.
+
+DIAGNOSTICS NOW SHOW
+• Existing source counts
+• Every raw title returned by the exact series query
+• Author metadata when Open Library supplies it
+• Which candidates were accepted from that exact-query path
+• Diagnostics remain available regardless of result count
+
+WHY
+V4.27.8 reported 3 exact-series records but only one internet title appeared
+in the final lineup. This build identifies whether the missing titles are caused
+by Open Library's raw results, earlier-source dedupe, or downstream cleanup.
+
+PRESERVED
+• V4.27.8 filtering behavior
+• Noisy author catalog remains blocked
+• Desktop modal positioning and button fixes
+• Ownership / Want to Read / Want to Own independence
+• Owned-copy truth
+• Backup payload compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
