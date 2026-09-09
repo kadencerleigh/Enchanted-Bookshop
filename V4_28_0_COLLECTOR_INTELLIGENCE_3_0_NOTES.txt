@@ -1,0 +1,40 @@
+ENCHANTED BOOKSHOP V4.28.0 — COLLECTOR INTELLIGENCE 3.0
+
+LOCKED SCOPE
+• Understand owned physical copies and distinct editions better using existing data.
+• Compare same-work/different-ISBN editions without inventing collector features.
+• Clarify exact-edition duplicates versus genuinely different editions.
+
+BOOK DETAIL
+• Real physical-copy count.
+• Distinct edition count.
+• Confirmed collector-feature count.
+• Count of owned copies missing ISBN.
+• Edition identity badge and copy count per edition.
+
+SHOPPING / SCANNER
+• Same-work/different-ISBN comparison across ISBN, edition name, format, publisher,
+  publication date, and printing.
+• Exact ISBN match tells you when a purchase would be another physical copy of the
+  same edition.
+• Collector features remain evidence-only and user-confirmable.
+
+TRUTH RULES
+• Work ≠ Edition ≠ Copy.
+• Public metadata ≠ ownership.
+• Only owned === true records count as physical copies.
+• Different ISBN does not imply special features.
+• No schema or SQL changes.
+
+PRESERVED
+• Series Discovery 3.0 golden V4.27.15 behavior
+• Library Intelligence 2.0 truth rules
+• Want to Read / Want to Own / ownership independence
+• Book Detail glow-up
+• Desktop modal/button fixes
+• Challenge cloud sync
+• Backup payload compatibility remains 4.22.1
+• Atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.

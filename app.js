@@ -285,7 +285,7 @@ function series(){
  seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){if(!map[s.name])map[s.name]=[]});
  var names=Object.keys(map).sort(),totalSeries=names.length,completeSeries=0,totalMissing=0,totalNeedCatalog=0;
  names.forEach(function(name){var a=map[name],cat=getSeries(name);if(!cat)return;(cat.books||[]).forEach(function(x){var st=seriesState(x,a);if(st==="missing")totalMissing++;if(st==="owned")totalNeedCatalog++});if(cat.books&&cat.books.length&&cat.books.every(function(x){return ownedSeriesEntry(x,a)}))completeSeries++});
- var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.27.15 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
+ var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
  if(!names.length)return hero+'<div class="empty series-discovery-empty"><b>No series saved yet.</b><div class="muted">Search by series name and optional author. Nothing becomes owned, Want to Read, or Want to Own unless you explicitly choose that elsewhere.</div></div>';
  return hero+'<div class="series-brain-grid">'+names.map(function(name){
   var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=getSeries(name);
@@ -562,7 +562,7 @@ function seriesDiscoveryConfidence(results){
  return{label:score>=5?"High":score>=3?"Review carefully":"Low",className:score>=5?"good":score>=3?"warn":"low",numbered:numbered,sources:Object.keys(sources),count:a.length}
 }
 function openSeriesDiscovery(){
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.15 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">Discover a series</h1><p class="sub">Search by the series name. Add the author when you know it to reduce unrelated results.</p><div class="form"><div class="field full"><label>Series name</label><input id="seriesDiscoveryName" placeholder="e.g. A Good Girl’s Guide to Murder"></div><div class="field full"><label>Author (optional, but helpful)</label><input id="seriesDiscoveryAuthor" placeholder="e.g. Holly Jackson"></div></div><div class="guardian purple"><b>🔮 Discovery never changes ownership or reading intent.</b><div class="muted">The internet can suggest a lineup, but you review it before anything is saved.</div></div><div class="actions"><button class="primary" id="runSeriesDiscovery">🔎 Find lineup</button></div>';
  el("#modal").classList.remove("hidden");
  el("#runSeriesDiscovery").onclick=function(){var name=(el("#seriesDiscoveryName").value||"").trim(),author=(el("#seriesDiscoveryAuthor").value||"").trim();if(!name){alert("Enter the series name first.");return}findSeriesLineup(name,author)};
  el("#seriesDiscoveryName").onkeydown=function(e){if(e.key==="Enter")el("#runSeriesDiscovery").click()};
@@ -571,7 +571,7 @@ function openSeriesDiscovery(){
 async function findSeriesLineup(name,authorHint){if(typeof window!=="undefined")window.__seriesFirstVolumeDiag=[];
  name=String(name||"").trim();authorHint=String(authorHint||"").trim();
  if(!name)return;
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.15 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
  var local=owned().filter(function(b){return norm(b.series)===norm(name)}),seedAuthors=[];
  if(authorHint)seedAuthors.push(authorHint);
  local.forEach(function(b){if(b.author&&!seedAuthors.some(function(a){return norm(a)===norm(b.author)}))seedAuthors.push(b.author)});
@@ -587,7 +587,7 @@ async function findSeriesLineup(name,authorHint){if(typeof window!=="undefined")
  var rawDiag=(discoveryDiag.olSeriesQueryRaw||[]).length?(discoveryDiag.olSeriesQueryRaw||[]).map(function(x,i){return (i+1)+'. '+esc(x)}).join('<br>'):'(none)';
  var acceptedDiag=(discoveryDiag.olSeriesQueryAccepted||[]).length?(discoveryDiag.olSeriesQueryAccepted||[]).map(function(x){return '✓ '+esc(x)}).join('<br>'):'(none)';
  var diagBox='<details class="series-discovery-diag"><summary>🔧 Discovery diagnostics</summary><div class="tiny">Google candidates: '+discoveryDiag.google+'<br>Open Library series match: '+discoveryDiag.olStructured+'<br>Open Library loose series match: '+discoveryDiag.olStructuredLoose+'<br>Open Library series query: '+discoveryDiag.olSeriesQuery+'<br>Open Library author catalog: '+discoveryDiag.olAuthorCatalog+'<hr><b>Raw exact-series results</b><br>'+rawDiag+'<hr><b>Accepted from exact-series query</b><br>'+acceptedDiag+'<hr><b>Member titles extracted from collection evidence</b><br>'+((discoveryDiag.bundleMembers||[]).length?(discoveryDiag.bundleMembers||[]).map(function(x){return '↳ '+esc(x)}).join('<br>'):'(none)')+'<hr><b>#1 inference trace</b><br>'+(((typeof window!=="undefined"&&window.__seriesFirstVolumeDiag)||[]).length?((window.__seriesFirstVolumeDiag||[]).map(function(d){return 'Title: '+esc(d.title)+'<br>Series: '+esc(d.series)+'<br>Title norm: '+esc(d.titleNorm)+'<br>Series norm: '+esc(d.seriesNorm)+'<br>Eponymous match: '+(d.eponymous?'YES':'NO')+'<br>Number: '+esc(d.incomingNumber)+' → '+esc(d.outgoingNumber)}).join('<br><br>')):'(none)')+'</div></details>';
- el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.27.15 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">'+esc(name)+'</h1><p class="sub"><b>Review before saving.</b> Public metadata can mix main novels, novellas, anthologies, translations, and bundles.</p><div class="series-discovery-confidence '+esc(conf.className)+'"><div><span>Discovery confidence</span><b>'+esc(conf.label)+'</b></div><div><span>Possible volumes</span><b>'+conf.count+'</b></div><div><span>Numbered</span><b>'+conf.numbered+'</b></div><div><span>Sources</span><b>'+esc(src)+'</b></div></div><div class="guardian purple"><b>✨ Internet proposes. You confirm. The Bookshop remembers.</b><div class="muted">Edit, remove, renumber, or reclassify anything below. Nothing changes until Confirm lineup.</div></div>'+warning+diagBox+'<div class="field full"><label>number | title | type</label><textarea id="seriesSuggestionLines" style="min-height:330px">'+esc(lines)+'</textarea></div><div class="actions"><button class="primary" id="confirmSeriesSuggestion">✨ Confirm lineup</button><button class="pill" id="retrySeriesSuggestion">🔎 Search again</button><button class="pill" id="cancelSeriesSuggestion">Cancel</button></div>';
  el("#cancelSeriesSuggestion").onclick=closeModal;
  el("#retrySeriesSuggestion").onclick=function(){openSeriesDiscovery();var n=el("#seriesDiscoveryName");if(n)n.value=name;var a=el("#seriesDiscoveryAuthor");if(a)a.value=authorHint||seedAuthors[0]||""};
  el("#confirmSeriesSuggestion").onclick=function(){
@@ -1135,6 +1135,53 @@ function editionGroupsFor(b){var groups={};workCopiesFor(b).forEach(function(x){
 function collectorCover(b){return '<div class="collector-cover">'+(b&&b.cover?'<img src="'+esc(b.cover)+'" alt="">':'<div class="collector-cover-empty">☾<br><span>'+esc(b&&b.title||'Book')+'</span></div>')+'</div>'}
 function collectorChips(items){return uniqText(items||[]).map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')}
 function collectorEditionMeta(b){var e=(b&&b.edition)||{},a=[];if(e.format)a.push(e.format);if(e.publisher)a.push(e.publisher);if(e.publicationDate)a.push(e.publicationDate);if(e.isbn)a.push('ISBN '+cleanISBN(e.isbn));return a.map(esc).join(' • ')}
+function collectorEditionIdentity(b){
+ var e=(b&&b.edition)||{},parts=[],isbn=cleanISBN(e.isbn||"");
+ if(isbn)parts.push("ISBN");
+ if(e.name)parts.push("Edition name");
+ if(e.format)parts.push("Format");
+ if(e.publisher)parts.push("Publisher");
+ if(e.publicationDate)parts.push("Publication");
+ return{isbn:isbn,complete:!!isbn,signals:parts.length,label:isbn?"ISBN confirmed":(parts.length>=3?"Metadata-defined edition":"Edition identity incomplete")}
+}
+function collectorWorkSummary(b){
+ var copies=workCopiesFor(b),groups=editionGroupsFor(b),features={},missingISBN=0;
+ copies.forEach(function(c){
+  var e=c.edition||{};
+  if(!cleanISBN(e.isbn||""))missingISBN++;
+  var fm=collectorFeatureMap(c);Object.keys(fm).forEach(function(k){features[k]=fm[k]})
+ });
+ return{copies:copies.length,editions:groups.length,features:Object.keys(features).length,missingISBN:missingISBN}
+}
+function collectorWorkSummaryHTML(b){
+ if(!b||b.owned!==true)return"";
+ var m=collectorWorkSummary(b);
+ return '<section class="collector-ci3-summary"><div class="collector-ci3-head"><div><div class="eyebrow">💎 V4.28 • COLLECTOR INTELLIGENCE 3.0</div><h2>Your physical collection of this work</h2></div><span class="collector-ci3-truth">Work ≠ Edition ≠ Copy</span></div>'+
+ '<div class="collector-ci3-metrics"><div><b>'+m.copies+'</b><span>physical cop'+(m.copies===1?'y':'ies')+'</span></div><div><b>'+m.editions+'</b><span>distinct edition'+(m.editions===1?'':'s')+'</span></div><div><b>'+m.features+'</b><span>collector feature'+(m.features===1?'':'s')+'</span></div><div><b>'+m.missingISBN+'</b><span>cop'+(m.missingISBN===1?'y':'ies')+' missing ISBN</span></div></div>'+
+ '<div class="tiny collector-ci3-note">Only records marked <b>owned</b> count here. Public metadata, wishlist records, and saved works do not create physical copies.</div></section>'
+}
+function collectorEditionDifference(owned,hand){
+ var oe=(owned&&owned.edition)||{},he=(hand&&hand.edition)||{},rows=[];
+ function add(label,a,b,normalize){
+  a=String(a||"").trim();b=String(b||"").trim();
+  if(normalize){a=normalize(a);b=normalize(b)}
+  if(!a&&!b)return;
+  rows.push({label:label,owned:a||"Unknown",hand:b||"Unknown",different:!!(a&&b&&a!==b)})
+ }
+ add("ISBN",oe.isbn,he.isbn,cleanISBN);
+ add("Edition",oe.name,he.name,norm);
+ add("Format",oe.format,he.format,norm);
+ add("Publisher",oe.publisher,he.publisher,norm);
+ add("Publication",oe.publicationDate,he.publicationDate,function(x){return String(x).trim()});
+ add("Printing",oe.printing,he.printing,norm);
+ return rows
+}
+function collectorEditionComparisonHTML(owned,hand){
+ var rows=collectorEditionDifference(owned,hand),diffs=rows.filter(function(r){return r.different}).length;
+ return '<div class="collector-ci3-identity"><div class="collector-layer">🧬 EDITION IDENTITY</div><div class="collector-ci3-table">'+
+ rows.map(function(r){return '<div class="'+(r.different?'different':'')+'"><span>'+esc(r.label)+'</span><b>'+esc(r.owned)+'</b><i>→</i><b>'+esc(r.hand)+'</b></div>'}).join('')+
+ '</div><div class="tiny">'+(diffs?diffs+' confirmed metadata difference'+(diffs===1?'':'s')+'.':'No additional metadata differences are confirmed beyond the ISBN signal.')+'</div></div>'
+}
 function effectiveReadingStatus(b){var x=String((b&&b.status)||"").trim();return x||"no-reading-status"}
 function detailStatusLabel(x){var m={'no-reading-status':'No reading status','want-to-read':'Want to Read','currently-reading':'Currently Reading','read':'Read','dnf':'DNF','rereading':'Rereading'};return m[x]||String(x||'No reading status').replace(/-/g,' ')}
 function readingStatusField(value){var opts=[['no-reading-status','No reading status'],['want-to-read','Want to Read'],['currently-reading','Currently Reading'],['read','Read'],['dnf','DNF'],['rereading','Rereading']];value=value||'no-reading-status';return '<div class="field"><label>Reading status</label><select name="status">'+opts.map(function(x){return '<option value="'+esc(x[0])+'" '+(x[0]===value?'selected':'')+'>'+esc(x[1])+'</option>'}).join('')+'</select></div>'}
@@ -1159,6 +1206,7 @@ function openCollectorBook(b){
  (series?'<div class="detail-series"><b>'+esc(series)+(seriesNo?' #'+esc(seriesNo):'')+'</b><span>'+esc(seriesContext)+'</span></div>':'')+
  '<div class="detail-hero-status"><span class="detail-status status-'+esc(readingStatus)+'">'+esc(status)+'</span><span class="detail-rating">'+rating+'</span></div>'+
  '<div class="detail-actions"><button class="primary" id="detailReadingAction">'+action+'</button><button class="pill" id="detailFavorite">'+(b.favorite?'★ Favorite':'☆ Favorite')+'</button><button class="pill" id="detailEdit">✏️ Edit Book</button></div></div></section>'+
+ collectorWorkSummaryHTML(b)+
  '<section class="detail-glance"><div class="detail-section-head"><div><div class="eyebrow">🧙 BOOK AT A GLANCE</div><h2>The important bits</h2></div></div><div class="detail-glance-grid">'+
  '<div><span>Genres</span><b class="detail-genre-chips">'+(genres.length?collectorChips(genres):'<em>Not set</em>')+'</b></div>'+
  '<div><span>Spice</span><b>'+detailSpice(b.spice,b.spiceConfidence)+'</b></div>'+
@@ -1167,10 +1215,10 @@ function openCollectorBook(b){
  '<div><span>Status</span><b>'+esc(status)+'</b></div><div><span>Rating</span><b>'+rating+'</b></div></div></section>'+
  (latest&&(latest.reaction||latest.mood||latest.date)?'<section class="detail-memory"><div class="eyebrow">💬 LATEST READING MEMORY</div>'+(latest.reaction?'<blockquote>'+esc(latest.reaction)+'</blockquote>':'')+'<div class="muted">'+esc([latest.date,latest.mood].filter(Boolean).join(' • '))+'</div></section>':'')+
  (b.edition?'<div class="collector-section-head detail-editions-head"><div><div class="collector-layer">💎 EDITIONS</div><h2>Your editions</h2></div><button class="pill" id="collectorAddEdition">＋ Add another edition</button></div><div class="collector-editions">':'<section class="detail-memory"><div class="eyebrow">📖 WORK SAVED</div><h3>No physical copy yet</h3><p class="muted">This story is saved in your Bookshop, but it is not marked as owned. No edition or physical copy has been created.</p></section>');
- if(b.edition)groups.forEach(function(g,gi){var x=g[0],xe=x.edition||{};html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+'</div><h3>'+esc(xe.name||xe.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div></div>'+(xe.isbn?'<span class="collector-isbn">'+esc(cleanISBN(xe.isbn))+'</span>':'')+'</div>'+(Array.isArray(xe.special)&&xe.special.length?'<div class="collector-features">'+collectorChips(xe.special)+'</div>':'')+'<div class="collector-copies">';
+ if(b.edition)groups.forEach(function(g,gi){var x=g[0],xe=x.edition||{},eid=collectorEditionIdentity(x);html+='<section class="collector-edition"><div class="collector-edition-head"><div><div class="eyebrow">EDITION '+(gi+1)+' • '+g.length+' COP'+(g.length===1?'Y':'IES')+'</div><h3>'+esc(xe.name||xe.format||'Edition')+'</h3><div class="muted">'+collectorEditionMeta(x)+'</div><div class="collector-identity-badge '+(eid.complete?'confirmed':'partial')+'">'+esc(eid.label)+'</div></div>'+(xe.isbn?'<span class="collector-isbn">'+esc(cleanISBN(xe.isbn))+'</span>':'')+'</div>'+(Array.isArray(xe.special)&&xe.special.length?'<div class="collector-features">'+collectorChips(xe.special)+'</div>':'')+'<div class="collector-copies">';
  g.forEach(function(c,ci){var ce=c.edition||{};html+='<article class="collector-copy" data-copy-id="'+esc(c.id)+'">'+collectorCover(c)+'<div class="collector-copy-info"><div class="collector-layer">📚 MY COPY'+(g.length>1?' #'+(ci+1):'')+'</div><b>'+esc(ce.printing||'Physical copy')+'</b>'+(c.copyConnections&&c.copyConnections.length?'<div class="collector-memory connection-memory-list">'+connectionDisplay(c.copyConnections).map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div>':'')+'<div class="tiny">'+esc(c.coverSource||'')+'</div></div><div class="collector-copy-actions"><button class="pill collectorEdit" data-copy-id="'+esc(c.id)+'">Edit copy</button><button class="pill collectorDuplicate" data-copy-id="'+esc(c.id)+'">＋ Another copy</button></div></article>'});
  html+='</div></section>'});
- if(b.edition)html+='</div><div class="tiny collector-safety">V4.24 changes presentation and quick actions only. Your Work → Edition → Copy data model remains the source of truth.</div>';html+='</div>';
+ if(b.edition)html+='</div><div class="tiny collector-safety">Collector Intelligence 3.0 reads your existing Work → Edition → Copy data without inventing ownership or edition facts.</div>';html+='</div>';
  el('#modalBody').innerHTML=html;el('#modal').classList.remove('hidden');
 
  var edit=el('#detailEdit');if(edit)edit.onclick=function(){openBook(b)};
@@ -1337,7 +1385,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.27.15 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.28.0 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};
@@ -1695,24 +1743,27 @@ function collectorFeatureMap(x){
 }
 function collectorFeatureLabel(id){var f=COLLECTOR_FEATURES.find(function(x){return x[0]===id});return f?f[1]:id}
 function collectorIntelligenceHTML(owned,hand){
- var own=collectorFeatureMap(owned),scan=collectorFeatureMap(hand),ids=Object.keys(scan),ownIds=Object.keys(own),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]});
- var verdict=adds.length>=3?'Strong collector difference':adds.length?'Meaningfully different':'Different ISBN — features still need confirmation';
- var cls=adds.length?'collector-ci-good':'collector-ci-warn';
+ var own=collectorFeatureMap(owned),scan=collectorFeatureMap(hand),ids=Object.keys(scan),ownIds=Object.keys(own),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]}),metaDiffs=collectorEditionDifference(owned,hand).filter(function(r){return r.different}).length;
+ var verdict=adds.length>=3?'Strong collector difference':(adds.length||metaDiffs>=2?'Meaningfully different':'Different ISBN — collector value still needs confirmation');
+ var cls=(adds.length||metaDiffs>=2)?'collector-ci-good':'collector-ci-warn';
+ var addHTML=adds.length?adds.map(function(id){return '<span class="collector-feature new">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):'<span class="tiny muted">No extra collector features confirmed yet.</span>';
+ var sharedHTML=shared.length?shared.map(function(id){return '<span class="collector-feature shared">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):(ownIds.length?'<span class="tiny muted">No overlapping features are confirmed on the scanned edition yet.</span>':'<span class="tiny muted">No collector features saved on your copy.</span>');
  return '<div class="collector-intelligence" id="collectorIntelligence">'+
-  '<div class="eyebrow">💎 COLLECTOR INTELLIGENCE 2.0</div><h3>What is actually different?</h3>'+
+  '<div class="eyebrow">💎 V4.28 • COLLECTOR INTELLIGENCE 3.0</div><h3>Same story. What is actually different?</h3>'+
   '<div class="collector-ci-verdict '+cls+'"><b>Collector verdict:</b> <span id="collectorVerdict">'+esc(verdict)+'</span></div>'+
-  '<div class="collector-ci-cols"><div><b>✨ Adds to your collection</b><div id="collectorAdds">'+(adds.length?adds.map(function(id){return '<span class="collector-feature new">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):'<span class="tiny muted">No extra features confirmed yet.</span>')+'</div></div>'+
-  '<div><b>📚 Already on your copy</b><div id="collectorShared">'+(shared.length?shared.map(function(id){return '<span class="collector-feature shared">'+esc(collectorFeatureLabel(id))+'</span>'}).join(''):(ownIds.length?'<span class="tiny muted">The scanned edition has not confirmed any overlapping features yet.</span>':'<span class="tiny muted">No collector features saved on your copy.</span>'))+'</div></div></div>'+
+  collectorEditionComparisonHTML(owned,hand)+
+  '<div class="collector-ci-cols"><div><b>✨ Adds to your collection</b><div id="collectorAdds">'+addHTML+'</div></div>'+
+  '<div><b>📚 Already on your copy</b><div id="collectorShared">'+sharedHTML+'</div></div></div>'+
   '<details class="collector-confirm"><summary>🔎 Confirm features on the edition in your hand</summary><p class="tiny">Public metadata can miss collector details. Check only what you can confirm from the book/listing. These choices stay temporary unless you add this edition.</p><div class="collector-checks">'+COLLECTOR_FEATURES.map(function(def){return '<label><input type="checkbox" class="collectorHandFeature" value="'+esc(def[0])+'" '+(scan[def[0]]?'checked':'')+'> '+esc(def[1])+'</label>'}).join('')+'</div></details>'+
-  '<div class="tiny collector-ci-note">Confidence: the ISBN difference is confirmed. Feature differences are based only on saved, detected, or personally confirmed details — the Bookshop will not invent collector features.</div></div>'
+  '<div class="tiny collector-ci-note">Truth rule: a different ISBN proves a different edition identifier. It does <b>not</b> prove special features. Collector features remain saved, detected, or personally confirmed only.</div></div>'
 }
 function wireCollectorIntelligence(owned,hand){
  var checks=[].slice.call(document.querySelectorAll('.collectorHandFeature'));if(!checks.length)return;
- function refresh(){var own=collectorFeatureMap(owned),chosen={};checks.forEach(function(c){if(c.checked)chosen[c.value]=collectorFeatureLabel(c.value)});var ids=Object.keys(chosen),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]});
+ function refresh(){var own=collectorFeatureMap(owned),chosen={};checks.forEach(function(c){if(c.checked)chosen[c.value]=collectorFeatureLabel(c.value)});var ids=Object.keys(chosen),adds=ids.filter(function(id){return !own[id]}),shared=ids.filter(function(id){return !!own[id]}),metaDiffs=collectorEditionDifference(owned,hand).filter(function(r){return r.different}).length;
   var a=el('#collectorAdds'),sh=el('#collectorShared'),v=el('#collectorVerdict');
   if(a)a.innerHTML=adds.length?adds.map(function(id){return '<span class="collector-feature new">'+esc(chosen[id])+'</span>'}).join(''):'<span class="tiny muted">No extra features confirmed yet.</span>';
   if(sh)sh.innerHTML=shared.length?shared.map(function(id){return '<span class="collector-feature shared">'+esc(chosen[id])+'</span>'}).join(''):'<span class="tiny muted">No confirmed overlap from the edition in your hand.</span>';
-  if(v)v.textContent=adds.length>=3?'Strong collector difference':adds.length?'Meaningfully different':'Different ISBN — features still need confirmation';
+  if(v)v.textContent=adds.length>=3?'Strong collector difference':(adds.length||metaDiffs>=2?'Meaningfully different':'Different ISBN — collector value still needs confirmation');
   hand.edition=hand.edition||{};hand.edition.special=ids.map(function(id){return chosen[id]});
  }
  checks.forEach(function(c){c.onchange=refresh});refresh()
@@ -1770,12 +1821,12 @@ function showMatch(f,source){
 
  if(exact){
   getOrBootstrapWorkIntelligence(exact.title||f.title,exact.author||f.author);
-  var canCover=!exact.cover||!!f.cover&&f.cover!==exact.cover;
+  var canCover=!exact.cover||!!f.cover&&f.cover!==exact.cover,exactCopies=workCopiesFor(exact).filter(function(x){return cleanISBN(x.edition&&x.edition.isbn||"")===isbn}).length;
   r.innerHTML=
    '<div class="guardian red shopping-v2">'+
-    '<div class="eyebrow">SHOPPING MODE 2.0 • EXACT ISBN CONFIRMED</div>'+
-    '<h3>🚨 YOU ALREADY OWN THIS EXACT EDITION</h3>'+
-    '<div class="shop-verdict">You already cataloged this ISBN. Unless you want a second physical copy, this is a <b>skip</b>.</div>'+
+    '<div class="eyebrow">SHOPPING MODE 2.0 • 💎 COLLECTOR INTELLIGENCE 3.0</div>'+
+    '<h3>🚨 EXACT EDITION ALREADY OWNED</h3>'+
+    '<div class="shop-verdict">This ISBN is already in your physical catalog as <b>'+exactCopies+' cop'+(exactCopies===1?'y':'ies')+'</b>. Buying it again would be another <b>copy</b>, not a new edition.</div>'+
     '<div class="shop-compare">'+shoppingCover(exact,"Your copy")+shoppingCover(f,"In your hand")+'</div>'+
     shoppingSeriesSignal(f)+
     '<div class="shop-confidence"><b>Edition confidence:</b> HIGH • exact ISBN match</div>'+
@@ -1795,7 +1846,7 @@ function showMatch(f,source){
  if(strictSame){
   r.innerHTML=
    '<div class="guardian yellow shopping-v2">'+
-    '<div class="eyebrow">SHOPPING MODE 2.0 • SAME WORK, DIFFERENT ISBN</div>'+
+    '<div class="eyebrow">SHOPPING MODE 2.0 • 💎 COLLECTOR INTELLIGENCE 3.0</div>'+
     '<h3>💎 DIFFERENT EDITION</h3>'+
     '<div class="shop-verdict">You own this story, but <b>not this ISBN</b>. This may be worth buying if you want another edition.</div>'+
     '<div class="shop-compare">'+shoppingCover(strictSame,"Edition you own")+shoppingCover(f,"Edition in your hand")+'</div>'+
