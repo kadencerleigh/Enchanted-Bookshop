@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#16221c">
+<meta name="theme-color" id="themeColor" content="#16221c">
 <title>Enchanted Bookshop</title>
-<link rel="manifest" href="manifest.json?v=4.22.1">
-<link rel="icon" href="icon-192.png?v=4.22.1">
-<link rel="apple-touch-icon" href="icon-192.png?v=4.22.1">
-<link rel="stylesheet" href="styles.css?v=4.22.1">
+<link rel="manifest" href="manifest.json?v=4.23">
+<link rel="icon" href="icon-192.png?v=4.23">
+<link rel="apple-touch-icon" href="icon-192.png?v=4.23">
+<link rel="stylesheet" href="styles.css?v=4.23">
+<script>(function(){try{var a=localStorage.getItem("enchanted-bookshop-atmosphere-v4-23")||"original";document.documentElement.setAttribute("data-atmosphere",a)}catch(e){}})();</script>
 </head>
 <body>
 <div class="shell">
 <aside class="side">
- <div class="brand"><div class="moon">☾</div><div><h1>Enchanted<br>Bookshop</h1><small>V4.22.1 • Backup Center 2.0</small></div></div>
+ <div class="brand"><div class="moon">☾</div><div><h1>Enchanted<br>Bookshop</h1><small>V4.23 • Bookshop Atmospheres</small></div></div>
  <div class="nav" id="nav">
   <button class="active" data-view="home">🏠 <span>Bookshop</span></button>
   <button data-view="library">📚 <span>My Library</span></button>
@@ -28,6 +29,7 @@
   <button data-view="achievements">🏅 <span>Achievements</span></button>
   <button data-view="power">🔍 <span>Smart Shelves</span></button>
   <button data-view="favorites">⭐ <span>Favorites</span></button>
+  <button data-view="atmospheres">🎨 <span>Atmospheres</span></button>
   <button data-view="backup">💾 <span>Backup</span></button>
   <button data-view="sync">☁️ <span>Sync</span></button>
  </div>
@@ -45,7 +47,7 @@
  <button class="mobile-more-shade" id="mobileMoreShade" aria-label="Close"></button>
  <div class="mobile-more-card">
   <div class="mobile-more-top"><b>More from your Bookshop</b><button id="mobileMoreClose">×</button></div>
-  <div class="mobile-build-version">Enchanted Bookshop · V4.22.1</div>
+  <div class="mobile-build-version">Enchanted Bookshop · V4.23</div>
   <div class="mobile-more-grid">
    <button data-view="series">🔮 <span>Series</span></button>
    <button data-view="wishlist">✨ <span>Want to Own</span></button>
@@ -57,6 +59,7 @@
    <button data-view="achievements">🏅 <span>Achievements</span></button>
    <button data-view="power">🔍 <span>Smart Shelves</span></button>
    <button data-view="favorites">⭐ <span>Favorites</span></button>
+   <button data-view="atmospheres">🎨 <span>Atmospheres</span></button>
    <button data-view="backup">💾 <span>Backup</span></button>
    <button data-view="sync">☁️ <span>Sync</span></button>
   </div>
@@ -73,6 +76,6 @@
 </main>
 </div>
 <div class="modal hidden" id="modal"><div class="modalcard"><button class="close" id="closeModal">×</button><div id="modalBody"></div></div></div>
-<script src="app.js?v=4.22.1"></script>
+<script src="app.js?v=4.23"></script>
 </body>
 </html>

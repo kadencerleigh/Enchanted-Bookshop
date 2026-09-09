@@ -2,6 +2,21 @@
 "use strict";
 var KEY="enchanted-bookshop-v3", SERIES_KEY="enchanted-bookshop-series-v4", SYNC_KEY="enchanted-bookshop-sync", META_CACHE_KEY="enchanted-bookshop-metadata-cache-v4-7-7", WORK_INTEL_KEY="enchanted-bookshop-work-intelligence-v4-7-8", deferredInstall=null;
 var META_CACHE_TTL=7*24*60*60*1000;
+var ATMOSPHERE_KEY="enchanted-bookshop-atmosphere-v4-23";
+var ATMOSPHERES=[
+ {id:"original",icon:"🌲",name:"Enchanted Bookshop — Original",short:"Original",desc:"Forest green, antique gold, warm cream, candlelight, and quiet celestial magic.",swatches:["#16221c","#d6b676","#51303e"]},
+ {id:"cottagecore",icon:"🌼",name:"Cottagecore",short:"Cottagecore",desc:"Soft sage, warm cream, honeyed wood, pressed flowers, and a sunlit cottage-library glow.",swatches:["#71866b","#ead9b8","#b78362"]},
+ {id:"rainy",icon:"🌧️",name:"Rainy Bookstore",short:"Rainy Bookstore",desc:"Moody blue-gray, deep green, rainy-window shadows, and warm lamps while the weather stays outside.",swatches:["#253640","#8096a2","#c69b65"]},
+ {id:"autumn",icon:"🍂",name:"Autumn Bookshop",short:"Autumn Bookshop",desc:"Burnt orange, rust, burgundy, deep brown, fallen leaves, and golden sweater-weather candlelight.",swatches:["#44261d","#b56f3c","#7b3f3f"]},
+ {id:"gothic",icon:"🖤",name:"Gothic Library",short:"Gothic Library",desc:"Charcoal, oxblood, aged parchment, ornate shadows, dark roses, and elegant old-library drama.",swatches:["#100d10","#742f3f","#c8b18a"]},
+ {id:"mushroom",icon:"🍄",name:"Mushroom Forest",short:"Mushroom Forest",desc:"Moss, earthy bark, mushroom red, amber glow, ferns, fungi, and woodland magic tucked between shelves.",swatches:["#263a28","#8a4735","#d2a85e"]}
+];
+function currentAtmosphere(){var id="original";try{id=localStorage.getItem(ATMOSPHERE_KEY)||"original"}catch(e){}return ATMOSPHERES.some(function(a){return a.id===id})?id:"original"}
+function atmosphereInfo(id){return ATMOSPHERES.find(function(a){return a.id===id})||ATMOSPHERES[0]}
+function applyAtmosphere(id){var a=atmosphereInfo(id);document.documentElement.setAttribute("data-atmosphere",a.id);try{localStorage.setItem(ATMOSPHERE_KEY,a.id)}catch(e){}var meta=document.getElementById("themeColor"),map={original:"#16221c",cottagecore:"#536451",rainy:"#1c2b33",autumn:"#3a211a",gothic:"#100d10",mushroom:"#203023"};if(meta)meta.setAttribute("content",map[a.id]||map.original)}
+applyAtmosphere(currentAtmosphere());
+function atmospherePage(){var active=currentAtmosphere();var cards=ATMOSPHERES.map(function(a){return '<button class="atmosphere-card '+(a.id===active?'selected':'')+'" data-atmosphere-pick="'+a.id+'" aria-pressed="'+(a.id===active?'true':'false')+'"><div class="atmosphere-preview atmosphere-preview-'+a.id+'"><span class="atmosphere-preview-icon">'+a.icon+'</span><span class="mini-window"></span><span class="mini-shelf"></span><span class="mini-lamp">✦</span></div><div class="atmosphere-card-copy"><div class="atmosphere-name">'+esc(a.name)+'</div><p>'+esc(a.desc)+'</p><div class="atmosphere-swatches">'+a.swatches.map(function(s){return '<i style="background:'+s+'"></i>'}).join('')+'</div><span class="atmosphere-state">'+(a.id===active?'✓ Currently inside':'Enter this atmosphere')+'</span></div></button>'}).join('');var a=atmosphereInfo(active);return '<section class="atmosphere-hero"><div><div class="eyebrow">🎨 V4.23 • BOOKSHOP ATMOSPHERES</div><h1 class="title">Choose the room your books live in.</h1><p class="sub">Same Bookshop. Same data. Same controls. A completely different world whenever you decide to change it.</p><div class="current-atmosphere">'+a.icon+' Current atmosphere: <b>'+esc(a.short)+'</b></div></div><div class="atmosphere-orb">☾✦</div></section><section class="atmosphere-note"><span>🪄</span><div><b>Manual only — exactly as requested.</b><div class="muted">Your choice stays on this device until you change it. No automatic seasons, no time-of-day switching, and no changes to your library data.</div></div></section><section class="atmosphere-grid">'+cards+'</section><div class="insight-note">✨ Atmospheres change the palette, page backdrop, card surfaces, borders, glow, navigation, and decorative details. They do not edit, sync, or reorganize your books.</div>'}
+
 function getMetaCache(){var x={};try{x=JSON.parse(localStorage.getItem(META_CACHE_KEY))||{}}catch(e){}return x}
 function getCachedJSON(url){var c=getMetaCache(),r=c[url];if(!r||!r.savedAt||Date.now()-r.savedAt>META_CACHE_TTL)return null;return r.data}
 function setCachedJSON(url,data){try{var c=getMetaCache();c[url]={savedAt:Date.now(),data:data};var keys=Object.keys(c);if(keys.length>120){keys.sort(function(a,b){return(c[a].savedAt||0)-(c[b].savedAt||0)});keys.slice(0,keys.length-120).forEach(function(k){delete c[k]})}localStorage.setItem(META_CACHE_KEY,JSON.stringify(c))}catch(e){}}
@@ -580,6 +595,7 @@ function render(){
  else if(state.view==="achievements")c.innerHTML=achievementsPage();
  else if(state.view==="power")c.innerHTML=powerSearchPage();
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
+ else if(state.view==="atmospheres")c.innerHTML=atmospherePage();
  else if(state.view==="backup")c.innerHTML=backup();
  else if(state.view==="sync")c.innerHTML=syncPage();
  wirePage()
@@ -1485,6 +1501,8 @@ function wirePage(){
  if(el('#saveSmartShelf'))el('#saveSmartShelf').onclick=function(){var c=readPowerControls(),name=prompt('Name this Smart Shelf:');if(!name||!name.trim())return;smartShelfList().push({id:'sh_'+Date.now().toString(36),name:name.trim(),criteria:JSON.parse(JSON.stringify(c)),createdAt:now()});save();render()};
  document.querySelectorAll('[data-smart-open]').forEach(function(btn){btn.onclick=function(){var sh=smartShelfList().find(function(x){return x.id===btn.getAttribute('data-smart-open')});if(sh){state.powerCriteria=JSON.parse(JSON.stringify(sh.criteria||{}));save();render()}}});
  document.querySelectorAll('[data-smart-delete]').forEach(function(btn){btn.onclick=function(){var id=btn.getAttribute('data-smart-delete'),sh=smartShelfList().find(function(x){return x.id===id});if(!sh)return;if(!confirm('Delete Smart Shelf “'+sh.name+'”? Your books will not be changed.'))return;state.smartShelves=smartShelfList().filter(function(x){return x.id!==id});save();render()}});
+
+ document.querySelectorAll('[data-atmosphere-pick]').forEach(function(btn){btn.onclick=function(){applyAtmosphere(btn.getAttribute('data-atmosphere-pick'));render()}});
 
  document.querySelectorAll('[data-achievement-filter]').forEach(function(btn){btn.onclick=function(){state.achievementFilter=btn.getAttribute('data-achievement-filter')||'All';save();render()}});
 
