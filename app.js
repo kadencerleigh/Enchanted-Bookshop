@@ -949,47 +949,70 @@ async function searchWorksNoISBN(query){
  query=String(query||"").trim();if(!query)return[];
  var out=[],seen={};
  function add(x){x=normalizeWorkSearchResult(x);if(!x.title)return;var k=workSearchKey(x);if(!k||seen[k])return;seen[k]=1;out.push(x)}
- async function google(q){
+ async function googleRaw(q){
   try{
    var gr=await cachedFetchJSON("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(q)+"&maxResults=12");
    if(gr.ok)((gr.data&&gr.data.items)||[]).forEach(function(it){var v=it.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");add({title:v.title||"",author:(v.authors||[]).join(", "),cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",genres:v.categories||[],description:v.description||"",series:ser.series,seriesNo:ser.seriesNo,publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",source:"Google Books"})})
   }catch(e){}
  }
- async function openlib(q,asTitle){
+ async function openlibRaw(q){
   try{
-   var url=asTitle
-    ? "https://openlibrary.org/search.json?title="+encodeURIComponent(q)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series"
-    : "https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series";
+   var or=await cachedFetchJSON("https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series");
+   if(or.ok)((or.data&&or.data.docs)||[]).forEach(function(d){var rawSeries=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||""),ser={series:"",seriesNo:""};if(rawSeries){var sm=rawSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm){ser.series=cleanSeriesName(sm[1]);ser.seriesNo=sm[2]||""}}add({title:d.title||"",author:(d.author_name||[]).join(", "),cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false"):"",genres:(d.subject||[]).slice(0,8),series:ser.series,seriesNo:ser.seriesNo,publicationDate:d.first_publish_year||"",pages:d.number_of_pages_median||"",source:"Open Library"})})
+  }catch(e){}
+ }
+ async function openlibTitleAuthor(title,author){
+  try{
+   var url="https://openlibrary.org/search.json?title="+encodeURIComponent(title)+(author?"&author="+encodeURIComponent(author):"")+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series";
    var or=await cachedFetchJSON(url);
    if(or.ok)((or.data&&or.data.docs)||[]).forEach(function(d){var rawSeries=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||""),ser={series:"",seriesNo:""};if(rawSeries){var sm=rawSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm){ser.series=cleanSeriesName(sm[1]);ser.seriesNo=sm[2]||""}}add({title:d.title||"",author:(d.author_name||[]).join(", "),cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false"):"",genres:(d.subject||[]).slice(0,8),series:ser.series,seriesNo:ser.seriesNo,publicationDate:d.first_publish_year||"",pages:d.number_of_pages_median||"",source:"Open Library"})})
   }catch(e){}
  }
- function titleFallbacks(q){
-  var clean=String(q||"").replace(/[“”"'!?(),:;]/g," ").replace(/\s+/g," ").trim(),a=clean.split(" ").filter(Boolean),arr=[];
-  function push(x){x=String(x||"").trim();if(x&&arr.indexOf(x)<0)arr.push(x)}
-  push(clean.replace(/\s*&\s*/g," and "));
-  push(clean.replace(/\band\b/ig," & "));
-  if(a.length>=4)push(a.slice(0,-2).join(" "));
-  if(a.length>=6)push(a.slice(0,-3).join(" "));
-  return arr.filter(function(x){return norm(x)!==norm(q)})
+ function splitCandidates(q){
+  var toks=String(q||"").trim().split(/\s+/).filter(Boolean),arr=[];
+  function push(title,author){
+   title=String(title||"").trim();author=String(author||"").trim();
+   if(!title||!author)return;
+   var k=norm(title)+"|"+norm(author);
+   if(!arr.some(function(x){return x.k===k}))arr.push({k:k,title:title,author:author})
+  }
+  if(toks.length>=4)push(toks.slice(0,-2).join(" "),toks.slice(-2).join(" "));
+  if(toks.length>=3)push(toks.slice(0,-1).join(" "),toks.slice(-1).join(" "));
+  for(var i=2;i<=toks.length-2;i++)push(toks.slice(0,i).join(" "),toks.slice(i).join(" "));
+  return arr.slice(0,8)
  }
  function score(x){
   var qt=norm(query),title=norm(x.title||""),author=norm(x.author||""),sc=0;
-  if(title&&qt.indexOf(title)>=0)sc+=60;
-  title.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=5});
-  author.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=7});
+  if(title&&qt.indexOf(title)>=0)sc+=70;
+  title.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=6});
+  author.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=8});
   if(x.cover)sc+=2;
   return sc
  }
 
- await Promise.all([google(query),openlib(query,false)]);
+ await Promise.all([googleRaw(query),openlibRaw(query)]);
+
  if(!out.length){
-  var fallbacks=titleFallbacks(query);
-  for(var i=0;i<fallbacks.length&&!out.length;i++){
-   var f=fallbacks[i];
-   await Promise.all([google('intitle:"'+f+'"'),openlib(f,true)])
+  var splits=splitCandidates(query);
+  for(var i=0;i<splits.length&&!out.length;i++){
+   var p=splits[i];
+   await Promise.all([
+    googleRaw('intitle:"'+p.title+'" inauthor:"'+p.author+'"'),
+    openlibTitleAuthor(p.title,p.author)
+   ])
   }
  }
+
+ if(!out.length){
+  var best=splitCandidates(query)[0];
+  if(best){
+   await Promise.all([
+    googleRaw('intitle:"'+best.title+'"'),
+    openlibTitleAuthor(best.title,"")
+   ])
+  }
+ }
+
  out.sort(function(a,b){return score(b)-score(a)});
  return out.slice(0,16)
 }
@@ -1032,7 +1055,7 @@ function renderWorkSearchResults(items){
 }
 function openBookshopIntake(){
  stopScanner();
- el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26.3 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
  el("#modal").classList.remove("hidden");
  async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
  el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};

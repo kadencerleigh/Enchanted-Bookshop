@@ -1,0 +1,23 @@
+ENCHANTED BOOKSHOP V4.26.3 — TITLE/AUTHOR SEARCH PATCH
+
+• Search now separates likely title and author boundaries when the combined query fails.
+• Example behavior for a query shaped like “Title Words Author First Last”:
+  title = leading words, author = likely trailing name.
+• Google Books receives intitle + inauthor fallback queries.
+• Open Library receives separate title + author parameters.
+• A title-only fallback remains if both providers still miss.
+• Ampersands and punctuation are preserved in the title.
+• The intake modal now visibly says V4.26.3.
+
+Preserved:
+• Unknown spice ≠ Clean
+• Work ≠ Edition ≠ Copy ownership fix
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar scroll
+• Mobile More-menu guard
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
