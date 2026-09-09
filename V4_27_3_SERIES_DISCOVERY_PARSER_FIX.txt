@@ -1,0 +1,47 @@
+ENCHANTED BOOKSHOP V4.27.3 — SERIES DISCOVERY PARSER FIX
+
+REAL DEVICE DIAGNOSTIC RESULT
+For:
+A Good Girl's Guide to Murder — Holly Jackson
+
+V4.27.2 showed:
+• Google candidates: 0
+• Open Library structured series match: 31
+• Open Library series query: 3
+• Open Library author catalog: 31
+• Final accepted internet candidates: 0
+
+ROOT CAUSE
+The internet search was working.
+The parser was rejecting the returned Open Library rows because it required
+each row's `series` field to repeat the user's exact series text.
+
+FIX
+• Results returned by Open Library's dedicated `series=` endpoint are now
+  treated as series candidates directly.
+• Author matching is still enforced when an author was provided.
+• Direct series-query and author-catalog fallbacks remain strict.
+• Series numbers are extracted from any returned series label when possible.
+• Exact series-title match can still infer #1.
+• Duplicates are collapsed later by the existing Series Discovery cleanup.
+• Weak-result diagnostics now show Open Library accepted-candidate count.
+
+TRUTH RULES RETAINED
+• Discovery never marks ownership.
+• Discovery never changes Want to Read.
+• Discovery never changes Want to Own.
+• Nothing is saved until the user confirms the proposed lineup.
+
+PRESERVED
+• V4.26.8 Want to Own View/Edit
+• V4.26.7 Want to Read View/Edit
+• Owned-copy truth
+• Reading-status independence
+• Challenge Cloud Sync
+• Book Detail
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
