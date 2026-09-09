@@ -1,0 +1,30 @@
+ENCHANTED BOOKSHOP V4.27.14 — POSSESSIVE #1 FIX
+
+ROOT CAUSE PROVEN BY V4.27.13
+Title normalized to:  good girl s guide to murder
+Series normalized to: good girl guide to murder
+The apostrophe was removed but its possessive "s" survived as a standalone token.
+
+TARGETED FIX
+• Series-identity normalization removes a standalone possessive "s" token.
+• This allows the eponymous first volume to resolve to #1.
+
+UNCHANGED
+• Retrieval
+• Open Library querying
+• Collection evidence extraction
+• Filtering
+• Deduplication
+• #0.5 / #2 / #3 inference
+• User confirmation flow
+• Diagnostics
+
+PRESERVED
+• Public metadata does not imply ownership
+• Want to Read / Want to Own / ownership independence
+• Desktop modal/button fixes
+• Backup compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
