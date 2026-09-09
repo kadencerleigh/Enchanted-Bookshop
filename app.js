@@ -67,6 +67,15 @@ function filtered(){
 var CHALLENGE_KEY="enchanted-bookshop-reading-challenge-v4-3";
 function getChallenges(){var x={};try{x=JSON.parse(localStorage.getItem(CHALLENGE_KEY))||{}}catch(e){}return x}
 function saveChallenges(x){localStorage.setItem(CHALLENGE_KEY,JSON.stringify(x))}
+function challengeRecords(){
+ var x=getChallenges(),out=[];
+ Object.keys(x||{}).forEach(function(y){var c=x[y]||{};out.push({id:"challenge-"+y,year:String(y),goal:+c.goal||0,updatedAt:c.updatedAt||"1970-01-01T00:00:00.000Z",deleted:!!c.deleted})});
+ return out
+}
+function recordsToChallenges(records){
+ var out={};(records||[]).forEach(function(r){if(r&&r.year&&!r.deleted)out[String(r.year)]={goal:+r.goal||0,updatedAt:r.updatedAt||now()}});
+ return out
+}
 var workIntelligence={};try{workIntelligence=JSON.parse(localStorage.getItem(WORK_INTEL_KEY))||{}}catch(e){}
 function saveWorkIntelligence(){localStorage.setItem(WORK_INTEL_KEY,JSON.stringify(workIntelligence))}
 function workIntelKey(title,author){return norm(title)+"|"+norm(author)}
@@ -94,7 +103,7 @@ function yearNow(){return new Date().getFullYear()}
 function dateOnly(){var d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+day}
 function readYear(b){return String(b.finishedDate||"").slice(0,4)}
 function challengeData(){var y=String(yearNow()),a=getChallenges();if(!a[y])a[y]={goal:0};saveChallenges(a);return{year:y,goal:+a[y].goal||0,done:owned().filter(function(b){return b.status==="read"&&readYear(b)===y}).length,all:a}}
-function setChallengeGoal(g){var c=challengeData();c.all[c.year].goal=Math.max(0,+g||0);saveChallenges(c.all);render()}
+function setChallengeGoal(g){var c=challengeData();c.all[c.year].goal=Math.max(0,+g||0);c.all[c.year].updatedAt=now();saveChallenges(c.all);render();autoSyncMaybe()}
 function uniqText(a){var out=[];([].concat(a||[])).forEach(function(x){x=String(x||"").trim();if(x&&out.indexOf(x)<0)out.push(x)});return out}
 function firstNonEmpty(){for(var i=0;i<arguments.length;i++){var x=arguments[i];if(x!==undefined&&x!==null&&String(x).trim()!=="")return x}return ""}
 function mergeFound(a,b){a=a||{};b=b||{};var ae=a.edition||{},be=b.edition||{};return {title:firstNonEmpty(a.title,b.title),author:firstNonEmpty(a.author,b.author),genres:uniqText([].concat(a.genres||[],b.genres||[])),description:firstNonEmpty(a.description,b.description),cover:firstNonEmpty(a.cover,b.cover),series:firstNonEmpty(a.series,b.series),seriesNo:firstNonEmpty(a.seriesNo,b.seriesNo),workKeys:uniqText([].concat(a.workKeys||[],b.workKeys||[])),edition:{isbn:firstNonEmpty(ae.isbn,be.isbn),name:firstNonEmpty(ae.name,be.name),format:firstNonEmpty(ae.format,be.format),publisher:firstNonEmpty(ae.publisher,be.publisher),publicationDate:firstNonEmpty(ae.publicationDate,be.publicationDate),pages:firstNonEmpty(ae.pages,be.pages),printing:firstNonEmpty(ae.printing,be.printing),special:uniqText([].concat(ae.special||[],be.special||[]))}}}
@@ -1453,7 +1462,11 @@ function mergeById(local,remoteRows){
  return Object.keys(map).map(function(k){return map[k]})
 }
 function syncStatus(msg,bad){var st=el("#syncRunStatus");if(st){st.className="syncstatus "+(bad?"bad":"ok");st.textContent=msg}}
-async function fetchCloudWorkIntel(){var r=await api("enchanted_work_intelligence?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
+async function fetchCloudWorkIntel(){var r=await api("enchanted_work_intelligence?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()} async function fetchCloudChallenges(){var r=await api("enchanted_reading_challenges?select=id,data,updated_at,deleted",{method:"GET"});return await r.json()}
+async function pushChallenges(){
+ var s=getSync(),payload=challengeRecords().map(function(x){var data={year:x.year,goal:x.goal,updatedAt:x.updatedAt};return{id:x.id,user_id:s.userId,data:data,updated_at:x.updatedAt||now(),deleted:!!x.deleted}});
+ if(payload.length)await api("enchanted_reading_challenges?on_conflict=id",{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(payload)})
+}
 function workIntelAsRecords(){return Object.keys(workIntelligence||{}).map(function(k){var x=Object.assign({},workIntelligence[k]||{});x.id=k;x.updatedAt=x.updatedAt||now();x.deleted=!!x.deleted;return x})}
 function recordsToWorkIntel(records){var out={};(records||[]).forEach(function(x){if(x&&x.id&&!x.deleted){var y=Object.assign({},x);delete y.id;delete y.deleted;out[x.id]=y}});return out}
 async function pushWorkIntel(){
@@ -1472,24 +1485,25 @@ async function pushSeries(){
 }
 async function pullAndMergeCloud(){
  var s=getSync();if(!s.userId)throw Error("Sign in first.");
- var remBooks=await fetchCloudBooks(),remSeries=await fetchCloudSeries(),remWork=await fetchCloudWorkIntel();
- var beforeBooks=state.books.length,beforeSeries=seriesCatalog.filter(function(x){return !x.deleted}).length,beforeWork=Object.keys(workIntelligence||{}).length;
+ var remBooks=await fetchCloudBooks(),remSeries=await fetchCloudSeries(),remWork=await fetchCloudWorkIntel(),remChallenges=await fetchCloudChallenges();
+ var beforeBooks=state.books.length,beforeSeries=seriesCatalog.filter(function(x){return !x.deleted}).length,beforeWork=Object.keys(workIntelligence||{}).length,beforeChallenges=Object.keys(getChallenges()||{}).length;
  state.books=mergeById(state.books,remBooks);seriesCatalog=mergeById(seriesCatalog,remSeries);
  workIntelligence=recordsToWorkIntel(mergeById(workIntelAsRecords(),remWork));
+  saveChallenges(recordsToChallenges(mergeById(challengeRecords(),remChallenges)));
  save();saveSeries();saveWorkIntelligence();
- return{booksAdded:Math.max(0,state.books.length-beforeBooks),seriesAdded:Math.max(0,seriesCatalog.filter(function(x){return !x.deleted}).length-beforeSeries),workAdded:Math.max(0,Object.keys(workIntelligence||{}).length-beforeWork)}
+ return{booksAdded:Math.max(0,state.books.length-beforeBooks),seriesAdded:Math.max(0,seriesCatalog.filter(function(x){return !x.deleted}).length-beforeSeries),workAdded:Math.max(0,Object.keys(workIntelligence||{}).length-beforeWork),challengesAdded:Math.max(0,Object.keys(getChallenges()||{}).length-beforeChallenges)}
 }
 async function pullSync(){
  syncStatus("☁️ Pulling cloud data + merging safely...",false);
- try{var r=await pullAndMergeCloud();render();if(state.view==="sync")syncStatus("☁️ Pull complete — local data kept, cloud data merged. Series added: "+r.seriesAdded+". Work Intelligence added: "+r.workAdded+".",false)}
+ try{var r=await pullAndMergeCloud();render();if(state.view==="sync")syncStatus("☁️ Pull complete — local data kept, cloud data merged. Series added: "+r.seriesAdded+". Work Intelligence added: "+r.workAdded+". Reading Challenges added: "+r.challengesAdded+".",false)}
  catch(e){syncStatus(e.message,true)}
 }
 async function syncNow(){
  syncStatus("☁️ Two-way merge in progress...",false);
  try{
   await pullAndMergeCloud();
-  await pushBooks();await pushSeries();await pushWorkIntel();
-  save();saveSeries();saveWorkIntelligence();render();if(state.view==="sync")syncStatus("☁️ Synced successfully — books + series + Work Intelligence merged on both sides.",false)
+  await pushBooks();await pushSeries();await pushWorkIntel();await pushChallenges();
+  save();saveSeries();saveWorkIntelligence();render();if(state.view==="sync")syncStatus("☁️ Synced successfully — books + series + Work Intelligence + Reading Challenges + Reading Challenges merged on both sides.",false)
  }catch(e){syncStatus(e.message,true)}
 }
 async function syncSeries(){
