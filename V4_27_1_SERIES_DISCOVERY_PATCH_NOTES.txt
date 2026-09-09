@@ -1,0 +1,35 @@
+ENCHANTED BOOKSHOP V4.27.1 — SERIES DISCOVERY FALLBACK PATCH
+
+REAL-WORLD FAILURE CAUGHT
+V4.27 found only the locally owned #3 (As Good As Dead) for:
+A Good Girl's Guide to Murder — Holly Jackson.
+
+ROOT CAUSE
+The discovery query mostly required the series name to appear directly in a
+book result. Sequels often have completely different titles, and public APIs
+do not always expose a structured series field.
+
+PATCH
+• Series Discovery now uses the same cached public-metadata request path that
+  already works in Library Intelligence.
+• When an author is known, Discovery now also scans that author's catalog.
+• Author-catalog results are still filtered: a candidate must reference the
+  requested series in its title, description, or structured series metadata.
+• Added conservative generic order inference:
+  - exact series-title match → #1
+  - prequel language → 0.5
+  - first/second/third/etc language → matching number
+  - “sequel” referencing the series → #2 fallback
+• Plausible unnumbered candidates are retained for REVIEW instead of silently
+  discarded. User confirmation is still required.
+• Open Library uses the resilient cached request path too.
+
+TRUTH RULES RETAINED
+• Discovery never marks ownership.
+• Discovery never changes reading status.
+• Discovery never changes Want to Own.
+• Nothing is saved until Confirm lineup.
+• No public metadata is treated as unquestionable truth.
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
