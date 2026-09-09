@@ -938,6 +938,60 @@ if(repairBtn){
 el("#bookForm").onsubmit=async function(ev){ev.preventDefault();var f=new FormData(ev.target),n={id:b.id||uid(),workId:b.workId||uid(),title:f.get("title"),author:f.get("author"),cover:b.cover||"",coverSource:b.coverSource||"",genres:(function(){var gs=f.getAll("genres").map(function(x){return String(x).trim()}).filter(Boolean),c=String(f.get("customGenre")||"").trim();if(c&&gs.indexOf(c)<0)gs.push(c);return gs})(),tags:String(f.get("tags")||"").split(",").map(function(x){return x.trim()}).filter(Boolean),series:f.get("series"),seriesNo:f.get("seriesNo"),status:f.get("status"),rating:+f.get("rating"),spice:+f.get("spice"),spiceSuggested:!!b.spiceSuggested,spiceConfirmed:!!b.spiceConfirmed,spiceConfidence:b.spiceConfidence||"",intelligence:!!b.intelligence,intelligenceSource:b.intelligenceSource||"",seriesSuggested:false,seriesConfidence:b.seriesConfidence||"",readDateUnknown:f.has("readDateUnknown"),finishedDate:(f.has("readDateUnknown")?"":(f.get("finishedDate")||((f.get("status")==="read"&&b.status!=="read")?dateOnly():(b.finishedDate||"")))),owned:f.has("owned"),wantOwn:f.has("wantOwn"),favorite:f.has("favorite"),copyConnections:buildCopyConnections(f),readingJournal:[].concat(b.readingJournal||[]),readingProgress:Object.assign({},b.readingProgress||{}),notes:f.get("notes"),edition:{isbn:f.get("isbn"),name:f.get("editionName"),format:f.get("format"),publisher:f.get("publisher"),publicationDate:f.get("publicationDate"),pages:f.get("pages"),printing:f.get("printing"),special:String(f.get("special")||"").split(",").map(function(x){return x.trim()}).filter(Boolean)},updatedAt:now(),deleted:false};await enrichManualBookCoverOnly(n);var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);learnWorkIntelligence(n);save();closeModal();render();autoSyncMaybe()};
  if(b.id)el("#deleteBtn").onclick=function(){if(confirm("Remove this copy from your bookshop?")){var x=state.books.find(function(x){return x.id===b.id});x.deleted=true;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
+
+/* V4.26 — Library Intelligence 2.0: Work Search / no-ISBN intake */
+function workSearchKey(x){return norm((x&&x.title)||"")+"|"+norm((x&&x.author)||"")}
+function normalizeWorkSearchResult(x){
+ x=x||{};return{title:String(x.title||"").trim(),author:String(x.author||"").trim(),cover:x.cover||"",genres:uniqText(x.genres||[]),description:x.description||"",series:x.series||"",seriesNo:x.seriesNo||"",source:x.source||"Public book metadata",edition:{isbn:"",name:"",format:"",publisher:x.publisher||"",publicationDate:x.publicationDate||"",pages:x.pages||"",printing:"",special:[]}}
+}
+async function searchWorksNoISBN(query){
+ query=String(query||"").trim();if(!query)return[];
+ var out=[],seen={};
+ function add(x){x=normalizeWorkSearchResult(x);if(!x.title)return;var k=workSearchKey(x);if(!k||seen[k])return;seen[k]=1;out.push(x)}
+ try{
+  var gr=await cachedFetchJSON("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(query)+"&maxResults=12");
+  if(gr.ok)((gr.data&&gr.data.items)||[]).forEach(function(it){var v=it.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");add({title:v.title||"",author:(v.authors||[]).join(", "),cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",genres:v.categories||[],description:v.description||"",series:ser.series,seriesNo:ser.seriesNo,publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",source:"Google Books"})})
+ }catch(e){}
+ try{
+  var or=await cachedFetchJSON("https://openlibrary.org/search.json?q="+encodeURIComponent(query)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series");
+  if(or.ok)((or.data&&or.data.docs)||[]).forEach(function(d){var rawSeries=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||""),ser={series:"",seriesNo:""};if(rawSeries){var sm=rawSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm){ser.series=cleanSeriesName(sm[1]);ser.seriesNo=sm[2]||""}}add({title:d.title||"",author:(d.author_name||[]).join(", "),cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false"):"",genres:(d.subject||[]).slice(0,8),series:ser.series,seriesNo:ser.seriesNo,publicationDate:d.first_publish_year||"",pages:d.number_of_pages_median||"",source:"Open Library"})})
+ }catch(e){}
+ return out.slice(0,16)
+}
+function findExistingWork(f){
+ var k=workSearchKey(f),exact=visible().find(function(b){return workSearchKey(b)===k});
+ if(exact)return exact;
+ return visible().find(function(b){return norm(b.title)===norm(f.title)&&(!f.author||!b.author||norm(b.author)===norm(f.author))})||null
+}
+function saveDiscoveredWork(f,mode){
+ var existing=findExistingWork(f),n;
+ if(existing){
+  n=existing;
+  if(mode==="read"||mode==="both")n.status="want-to-read";
+  if(mode==="own"||mode==="both")n.wantOwn=true;
+  n.updatedAt=now();
+ }else{
+  n={id:uid(),workId:uid(),title:f.title||"",author:f.author||"",cover:f.cover||"",coverSource:f.cover?(f.source||"Public metadata"):"",genres:uniqText(f.genres||[]),tags:[],series:f.series||"",seriesNo:f.seriesNo||"",status:(mode==="read"||mode==="both")?"want-to-read":"",owned:false,wantOwn:(mode==="own"||mode==="both"),rating:0,favorite:false,spice:0,spiceConfidence:"unknown",intelligence:true,intelligenceSource:f.source||"Public book metadata",readDateUnknown:false,finishedDate:"",copyConnections:[],readingJournal:[],readingProgress:{},notes:"",edition:{isbn:"",name:"",format:"",publisher:(f.edition&&f.edition.publisher)||"",publicationDate:(f.edition&&f.edition.publicationDate)||"",pages:(f.edition&&f.edition.pages)||"",printing:"",special:[]},updatedAt:now(),deleted:false};
+  state.books.push(n)
+ }
+ learnWorkIntelligence(n);save();autoSyncMaybe();return n
+}
+function renderWorkSearchResults(items){
+ var box=el("#workSearchResults");if(!box)return;
+ if(!items.length){box.innerHTML='<div class="empty">No confident matches yet. Try <b>title + author</b>, or use Manual Add.</div>';return}
+ box.innerHTML='<div class="work-search-list">'+items.map(function(f,i){var existing=findExistingWork(f);return '<article class="work-search-card">'+(f.cover?'<img src="'+esc(f.cover)+'" alt="">':'<div class="work-search-cover">📕</div>')+'<div class="work-search-copy"><div class="eyebrow">'+esc(f.source||"Book search")+(existing?' • ✨ already in your Bookshop':'')+'</div><h3>'+esc(f.title)+'</h3><p>'+esc(f.author||"Unknown author")+'</p>'+(f.series?'<small>📚 '+esc(f.series)+(f.seriesNo?' #'+esc(f.seriesNo):'')+'</small>':'')+'<div class="work-search-actions"><button class="pill" data-work-save="'+i+'" data-mode="read">📖 Want to Read</button><button class="pill" data-work-save="'+i+'" data-mode="own">✨ Want to Own</button><button class="primary" data-work-save="'+i+'" data-mode="both">📖✨ Both</button></div></div></article>'}).join("")+'</div>';
+ Array.prototype.forEach.call(box.querySelectorAll("[data-work-save]"),function(btn){btn.onclick=function(){var f=items[Number(btn.getAttribute("data-work-save"))],mode=btn.getAttribute("data-mode"),n=saveDiscoveredWork(f,mode);var labels={read:"Want to Read",own:"Want to Own",both:"Want to Read + Want to Own"};box.innerHTML='<div class="guardian purple"><div class="eyebrow">✨ SAVED TO YOUR BOOKSHOP</div><h3>'+esc(n.title)+'</h3><p class="muted">'+esc(labels[mode])+' • No ISBN required.</p><div class="actions"><button class="primary" id="searchAnotherWork">🔎 Search another</button><button class="pill" id="openSavedWork">📕 View book</button></div></div>';el("#searchAnotherWork").onclick=openBookshopIntake;el("#openSavedWork").onclick=function(){closeModal();openCollectorBook(n)}}})
+}
+function openBookshopIntake(){
+ stopScanner();
+ el("#modalBody").innerHTML='<div class="eyebrow">🧠 V4.26 • LIBRARY INTELLIGENCE 2.0</div><h1 class="title">Add to your Bookshop</h1><p class="sub">Heard about a book? Search by title or author. You do <b>not</b> need an ISBN just to save a story.</p><div class="field full"><label>Book title or author</label><div class="lookuprow"><input id="workSearchInput" placeholder="e.g. Fourth Wing Rebecca Yarros"><button class="primary" id="workSearchBtn">🔎 Search</button></div></div><div class="intake-shortcuts"><button class="pill" id="intakeManual">✍️ Manual Add</button><button class="pill" id="intakeScan">📷 Scan / ISBN</button></div><div id="workSearchResults"><div class="guardian purple"><b>Choose what the book means to you:</b><div class="muted">📖 Want to Read = TBR<br>✨ Want to Own = physical wishlist<br>📖✨ Both = both lists</div></div></div>';
+ el("#modal").classList.remove("hidden");
+ async function run(){var q=el("#workSearchInput").value.trim(),box=el("#workSearchResults");if(!q)return;box.innerHTML='<div class="empty">🔮 Searching the shelves…</div>';var items=await searchWorksNoISBN(q);renderWorkSearchResults(items)}
+ el("#workSearchBtn").onclick=run;el("#workSearchInput").onkeydown=function(e){if(e.key==="Enter")run()};
+ el("#intakeManual").onclick=function(){openBook()};
+ el("#intakeScan").onclick=openGuardian
+}
+
 var scannerStream=null,scannerTimer=null,detector=null,busy=false;
 function openGuardian(){
  stopScanner();el("#modalBody").innerHTML='<div class="eyebrow">V4.15.2 • Reading Journal 2.0</div><h1 class="title">Scan a book</h1><p class="sub">Use the camera barcode reader on supported browsers, or enter the ISBN manually.</p><div class="camera" id="cameraBox"><div class="muted">📷 Camera is off.</div></div><div class="toolbar"><button class="primary" id="startCam">📷 Start Camera</button><button class="pill hidden" id="stopCam">Stop</button></div><div class="field full"><label>ISBN</label><div class="lookuprow"><input id="isbnInput" inputmode="numeric" placeholder="9780062059932"><button class="primary" id="lookupBtn">Identify</button></div></div><div id="guardianResult"></div>';
@@ -1585,7 +1639,7 @@ document.addEventListener("click",function(e){
  var mb=e.target.closest("[data-missing-series]");if(mb){openMissing(mb.getAttribute("data-missing-series"),mb.getAttribute("data-missing-title"),mb.getAttribute("data-missing-no"));return}
  var c=e.target.closest(".card");if(c){var b=visible().find(function(x){return x.id===c.getAttribute("data-id")});if(b)openCollectorBook(b)}
 });
-el("#addBtn").onclick=function(){openBook()};el("#scanBtn").onclick=openGuardian;el("#closeModal").onclick=closeModal;el("#modal").onclick=function(e){if(e.target.id==="modal")closeModal()};el("#search").oninput=function(){if(state.view!=="library")state.view="library";render()};
+el("#addBtn").onclick=openBookshopIntake;el("#scanBtn").onclick=openGuardian;el("#closeModal").onclick=closeModal;el("#modal").onclick=function(e){if(e.target.id==="modal")closeModal()};el("#search").oninput=function(){if(state.view!=="library")state.view="library";render()};
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferredInstall=e;el("#installBtn").classList.remove("hidden")});el("#installBtn").onclick=async function(){if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;el("#installBtn").classList.add("hidden")}};
 if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){})});
 render();

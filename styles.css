@@ -1269,3 +1269,14 @@ html[data-atmosphere="mushroom"] .detail-hero:after{content:"🍄"}
   .side .nav{flex:0 0 auto}
   .sidefoot{flex-shrink:0}
 }
+
+/* V4.26 — Library Intelligence 2.0 */
+.intake-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.work-search-list{display:grid;gap:10px;margin-top:14px}
+.work-search-card{display:grid;grid-template-columns:76px 1fr;gap:12px;padding:12px;border:1px solid var(--feature-border,var(--line));border-radius:14px;background:var(--feature-card-bg,var(--panel2))}
+.work-search-card img,.work-search-cover{width:76px;height:108px;object-fit:cover;border-radius:9px;box-shadow:var(--page-shadow,0 8px 20px #0006)}
+.work-search-cover{display:grid;place-items:center;background:var(--feature-bg,var(--panel));font-size:30px}
+.work-search-copy h3{margin:3px 0 2px}.work-search-copy p{margin:0 0 5px;color:var(--feature-muted,var(--muted))}
+.work-search-copy small{display:block;color:var(--feature-muted,var(--muted));margin-bottom:8px}
+.work-search-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+@media(max-width:560px){.work-search-card{grid-template-columns:60px 1fr}.work-search-card img,.work-search-cover{width:60px;height:88px}.work-search-actions button{font-size:11px;padding:9px 8px}}
