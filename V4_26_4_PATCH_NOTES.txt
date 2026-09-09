@@ -1,0 +1,37 @@
+ENCHANTED BOOKSHOP V4.26.4 — READING STATUS INDEPENDENCE
+
+This fixes a deeper modeling bug discovered during real testing:
+
+OWNING A BOOK DOES NOT MEAN YOU WANT TO READ IT.
+WANTING TO OWN A BOOK DOES NOT MEAN YOU WANT TO READ IT.
+
+NEW READING STATUS:
+• No reading status
+
+BEHAVIOR:
+• New collection/manual entries default to No reading status.
+• Want-to-Own-only discoveries use No reading status.
+• Existing blank reading statuses display as No reading status.
+• Book Detail no longer falls back to Want to Read.
+• Want to Own is shown separately in Book Detail.
+• A No-reading-status book can be deliberately added to TBR with “Add to TBR.”
+• TBR remains only books explicitly marked Want to Read.
+• Owned family/inherited books can remain owned without being placed on TBR.
+• Adding an edition/copy does not invent a reading intention.
+• Power Search can filter No reading status.
+
+NO AUTOMATIC MIGRATION OF EXISTING WANT-TO-READ BOOKS.
+The app cannot safely know which old Want-to-Read records were intentional, so it leaves them alone.
+
+PRESERVED:
+• V4.26.3 title/author search
+• V4.26.2 Unknown spice ≠ Clean
+• V4.26.1 ownership distinction
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar + mobile More guards
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
