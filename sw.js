@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-18-1-live-oracle-filters";
+const CACHE="enchanted-bookshop-v4-19-book-goblin-cleanup";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.18.1",
- "./app.js?v=4.18.1",
- "./manifest.json?v=4.18.1",
- "./icon-192.png?v=4.18.1",
+ "./styles.css?v=4.19",
+ "./app.js?v=4.19",
+ "./manifest.json?v=4.19",
+ "./icon-192.png?v=4.19",
  "./icon-512.png"
 ];
 
