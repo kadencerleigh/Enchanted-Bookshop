@@ -357,6 +357,27 @@ function openWish(b){
 function journalBooks(){return owned().filter(function(b){return b.status==="currently-reading"||b.status==="rereading"||(b.readingJournal&&b.readingJournal.length)})}
 function journalSessions(b){return [].concat(b.readingJournal||[]).slice().sort(function(a,c){var d=String(c.date||"").localeCompare(String(a.date||""));if(d)return d;return String(c.updatedAt||c.createdAt||"").localeCompare(String(a.updatedAt||a.createdAt||""))})}
 function recalcReadingProgress(b){var latest=journalSessions(b)[0];if(latest)b.readingProgress={page:latest.page||"",percent:latest.percent||"",updatedAt:now()};else b.readingProgress={page:"",percent:"",updatedAt:now()}}
+function readingInsights(){
+ var o=owned(),sessions=[];
+ o.forEach(function(b){(b.readingJournal||[]).forEach(function(e){sessions.push({book:b,entry:e})})});
+ sessions.sort(function(a,b){return String(a.entry.date||a.entry.createdAt||"").localeCompare(String(b.entry.date||b.entry.createdAt||""))});
+ var minutes=sessions.reduce(function(n,x){return n+(+x.entry.minutes||0)},0),readingDays={},moods={},genres={},ratings={},pages=0,byBook={};
+ sessions.forEach(function(x){var e=x.entry,b=x.book;if(e.date)readingDays[e.date]=1;if(e.mood)moods[e.mood]=(moods[e.mood]||0)+1;(b.genres||[]).forEach(function(g){genres[g]=(genres[g]||0)+1});if(b.rating)ratings[b.rating]=(ratings[b.rating]||0)+1;var pg=+e.page||0;if(pg){var k=b.id||b.title,prev=byBook[k]||0;if(pg>=prev)pages+=pg-prev;byBook[k]=Math.max(prev,pg)}});
+ var finished=o.filter(function(b){return b.status==='read'}),rated=finished.filter(function(b){return +b.rating>0}),avg= rated.length ? (rated.reduce(function(n,b){return n+(+b.rating||0)},0)/rated.length).toFixed(1) : '—';
+ function top(obj){var a=Object.keys(obj).map(function(k){return[k,obj[k]]}).sort(function(a,b){return b[1]-a[1]});return a[0]||null}
+ function bars(obj,empty){var a=Object.keys(obj).map(function(k){return[k,obj[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,8),max=a.length?a[0][1]:1;return a.length?a.map(function(x){return '<div class="insight-bar-row"><span>'+esc(x[0])+'</span><div class="insight-bar"><i style="width:'+Math.round(x[1]/max*100)+'%"></i></div><b>'+x[1]+'</b></div>'}).join(''):'<div class="empty mini">'+empty+'</div>'}
+ var tg=top(genres),tm=top(moods),longest=sessions.slice().sort(function(a,b){return (+b.entry.minutes||0)-(+a.entry.minutes||0)})[0];
+ var thisYear=String(yearNow()),yearFinished=finished.filter(function(b){return String(b.finishedDate||'').slice(0,4)===thisYear&&!b.readDateUnknown}).length;
+ return '<div class="insights-hero"><div><div class="eyebrow">📊 V4.17 • READING STATISTICS & INSIGHTS</div><h1 class="title">Your reading life, in numbers.</h1><p class="sub">Built from your library and Reading Journal — no guessing, just the story your own data tells.</p></div><div class="insight-orb">🔮</div></div>'+
+ '<div class="insight-kpis"><div><b>'+sessions.length+'</b><span>Sessions logged</span></div><div><b>'+Object.keys(readingDays).length+'</b><span>Reading days</span></div><div><b>'+minutes+'</b><span>Minutes read</span></div><div><b>'+pages+'</b><span>Pages logged</span></div><div><b>'+finished.length+'</b><span>Books read</span></div><div><b>'+avg+'</b><span>Average rating</span></div></div>'+
+ '<div class="insight-grid"><section class="insight-card"><div class="eyebrow">✨ THIS YEAR</div><h2>'+thisYear+' at a glance</h2><div class="insight-big">'+yearFinished+' <small>books finished</small></div><p class="muted">Books marked Read with a known '+thisYear+' finish date.</p></section>'+
+ '<section class="insight-card"><div class="eyebrow">🕯️ READING RHYTHM</div><h2>Your journal pulse</h2><div class="insight-callouts"><div><b>'+(tm?esc(tm[0]):'—')+'</b><span>Most logged mood</span></div><div><b>'+(longest?(+longest.entry.minutes||0)+' min':'—')+'</b><span>Longest session</span></div></div></section>'+
+ '<section class="insight-card"><div class="eyebrow">📚 GENRE SPELLBOOK</div><h2>What you reach for</h2>'+(tg?'<p class="insight-lead">Your most-journaled genre is <b>'+esc(tg[0])+'</b>.</p>':'')+bars(genres,'Log reading sessions on books with genres to reveal your patterns.')+'</section>'+
+ '<section class="insight-card"><div class="eyebrow">🌙 READING MOODS</div><h2>How reading feels</h2>'+bars(moods,'Your Reading Journal moods will gather here.')+'</section>'+
+ '<section class="insight-card insight-wide"><div class="eyebrow">⭐ RATINGS</div><h2>Your rating constellation</h2>'+bars(ratings,'Rate finished books and your constellation will appear here.')+'</section></div>'+
+ '<div class="insight-note">✨ Pages logged are calculated from the page progress you record in Reading Journal sessions. Statistics grow naturally as you use the Bookshop.</div>'
+}
+
 function readingJournal2(){
  var books=journalBooks(),sessions=[];books.forEach(function(b){journalSessions(b).forEach(function(x){sessions.push({book:b,session:x})})});sessions.sort(function(a,b){return String(b.session.date||"").localeCompare(String(a.session.date||""))});
  var active=owned().filter(function(b){return b.status==="currently-reading"||b.status==="rereading"}),finished=owned().filter(function(b){return b.status==="read"&&b.finishedDate});
@@ -389,6 +410,7 @@ function render(){
  else if(state.view==="series")c.innerHTML=series();
  else if(state.view==="wishlist")c.innerHTML=wishlist2();
  else if(state.view==="journal")c.innerHTML=readingJournal2();
+ else if(state.view==="insights")c.innerHTML=readingInsights();
  else if(state.view==="tbr")c.innerHTML=shelf("📖 Want to Read",visible().filter(function(b){return b.status==="want-to-read"}));
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
  else if(state.view==="backup")c.innerHTML=backup();
@@ -1186,7 +1208,7 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.16",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-16-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.17",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-17-backup.json";document.body.appendChild(a);a.click();a.remove()}
 function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");

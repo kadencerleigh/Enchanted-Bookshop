@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-16-customizable-home";
+const CACHE="enchanted-bookshop-v4-17-reading-insights";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.16",
- "./app.js?v=4.16",
- "./manifest.json?v=4.16",
- "./icon-192.png?v=4.16",
+ "./styles.css?v=4.17",
+ "./app.js?v=4.17",
+ "./manifest.json?v=4.17",
+ "./icon-192.png?v=4.17",
  "./icon-512.png"
 ];
 
