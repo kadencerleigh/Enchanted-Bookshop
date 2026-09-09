@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-20-achievements";
+const CACHE="enchanted-bookshop-v4-21-power-search-smart-shelves";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.20",
- "./app.js?v=4.20",
- "./manifest.json?v=4.20",
- "./icon-192.png?v=4.20",
+ "./styles.css?v=4.21",
+ "./app.js?v=4.21",
+ "./manifest.json?v=4.21",
+ "./icon-192.png?v=4.21",
  "./icon-512.png"
 ];
 

@@ -521,6 +521,38 @@ function achievementsPage(){
  return '<section class="achievement-hero"><div><div class="eyebrow">🏅 V4.20 • ACHIEVEMENTS</div><h1 class="title">The Trophy Cabinet</h1><p class="sub">Milestones pulled from your <b>real library, journal, series, collector, and Cleanup data</b>. No made-up unlock dates. If the Bookshop can prove it, you earn it.</p></div><div class="achievement-crown">🏆</div></section><section class="achievement-summary"><div><b>'+unlocked+'</b><span>earned</span></div><div><b>'+defs.length+'</b><span>achievements</span></div><div><b>'+pct+'%</b><span>cabinet complete</span></div><div class="achievement-rarity-summary"><span>Common <b>'+rare.Common+'</b></span><span>Rare <b>'+rare.Rare+'</b></span><span>Epic <b>'+rare.Epic+'</b></span><span>Legendary <b>'+rare.Legendary+'</b></span></div></section><div class="achievement-master-progress"><i style="width:'+pct+'%"></i></div><div class="achievement-tabs">'+tabs+'</div><div class="achievement-grid">'+shown.map(badge).join('')+'</div>'+finale+'<div class="insight-note">✨ Achievements are recalculated from the data already saved in your Bookshop, so data-backed milestones can unlock retroactively. Progress changes naturally as your real library grows.</div>'
 }
 
+
+
+// V4.21 — Power Search + Smart Shelves
+function smartShelfList(){if(!Array.isArray(state.smartShelves))state.smartShelves=[];return state.smartShelves}
+function powerGenres(){var x={};owned().forEach(function(b){(b.genres||[]).forEach(function(g){if(g)x[g]=1})});return Object.keys(x).sort()}
+function powerCriteria(){return state.powerCriteria||{q:'',genre:'Any',status:'Any',length:'Any',spice:'Any',series:'Any',favorite:false,collector:false,signed:false}}
+function powerMatch(b,c){
+ c=c||powerCriteria();var q=norm(c.q||'');if(q){var hay=norm([b.title,b.author,b.series].concat(b.genres||[],b.tags||[],[(b.edition&&b.edition.isbn)||'',(b.edition&&b.edition.publisher)||'']).join(' '));if(hay.indexOf(q)<0)return false}
+ if(c.genre&&c.genre!=='Any'&&!(b.genres||[]).some(function(g){return norm(g)===norm(c.genre)}))return false;
+ if(c.status&&c.status!=='Any'&&b.status!==c.status)return false;
+ var pg=parseInt(b.edition&&b.edition.pages,10)||0;if(c.length==='Short'&&(!pg||pg>300))return false;if(c.length==='Medium'&&(!pg||pg<301||pg>450))return false;if(c.length==='Long'&&(!pg||pg<451))return false;
+ var sp=+b.spice||0;if(c.spice==='Clean / mild'&&sp>2)return false;if(c.spice==='Spicy'&&sp<3)return false;if(c.spice==='Very spicy'&&sp<4)return false;
+ if(c.series==='Series'&&!b.series)return false;if(c.series==='Standalone'&&b.series)return false;
+ if(c.favorite&&!b.favorite)return false;
+ var ed=b.edition||{},special=[].concat(ed.special||[]).map(norm),features=[].concat(b.collectorFeatures||[],b.copyFeatures||[]).map(norm);
+ if(c.collector&&!(special.length||features.length||ed.collectorEdition||ed.specialEdition))return false;
+ if(c.signed&&!(ed.signed||b.signed||special.indexOf('signed')>=0||features.indexOf('signed')>=0))return false;
+ return true
+}
+function powerResults(c){return owned().filter(function(b){return powerMatch(b,c)})}
+function powerSearchPage(){
+ var c=powerCriteria(),genres=powerGenres(),res=powerResults(c),shelves=smartShelfList();
+ function op(a,v){return a.map(function(x){return'<option '+(x===v?'selected':'')+'>'+esc(x)+'</option>'}).join('')}
+ var shelfCards=shelves.map(function(sh){var n=powerResults(sh.criteria||{}).length;return '<article class="smart-shelf-card"><div><div class="eyebrow">SMART SHELF</div><h3>'+esc(sh.name)+'</h3><div class="muted">'+n+' matching book'+(n===1?'':'s')+' • updates automatically</div></div><div class="actions"><button class="primary" data-smart-open="'+esc(sh.id)+'">Open shelf</button><button class="pill" data-smart-delete="'+esc(sh.id)+'">Delete</button></div></article>'}).join('');
+ var cards=res.map(card).join('')||'<div class="power-empty">No owned books match this combination. Change a filter and the shelf will refill. ✨</div>';
+ return '<section class="power-hero"><div><div class="eyebrow">🔍 V4.21 • POWER SEARCH + SMART SHELVES</div><h1 class="title">Search your shelves like magic.</h1><p class="sub">Combine the information already saved in your Bookshop. Hard filters stay exact, and saved Smart Shelves update automatically as your library changes.</p></div><div class="power-orb">🔍✨</div></section>'+
+ '<section class="power-controls"><div class="power-field wide"><label>Search</label><input id="powerQ" value="'+esc(c.q||'')+'" placeholder="Title, author, series, tag, ISBN…"></div><div class="power-field"><label>Genre</label><select id="powerGenre">'+op(['Any'].concat(genres),c.genre||'Any')+'</select></div><div class="power-field"><label>Reading status</label><select id="powerStatus">'+op(['Any','want-to-read','currently-reading','read','dnf','rereading'],c.status||'Any')+'</select></div><div class="power-field"><label>Length</label><select id="powerLength">'+op(['Any','Short','Medium','Long'],c.length||'Any')+'</select></div><div class="power-field"><label>Spice</label><select id="powerSpice">'+op(['Any','Clean / mild','Spicy','Very spicy'],c.spice||'Any')+'</select></div><div class="power-field"><label>Series?</label><select id="powerSeries">'+op(['Any','Series','Standalone'],c.series||'Any')+'</select></div><label class="power-check"><input type="checkbox" id="powerFavorite" '+(c.favorite?'checked':'')+'> ⭐ Favorites</label><label class="power-check"><input type="checkbox" id="powerCollector" '+(c.collector?'checked':'')+'> 💎 Collector features</label><label class="power-check"><input type="checkbox" id="powerSigned" '+(c.signed?'checked':'')+'> ✒️ Signed</label><div class="power-count"><b>'+res.length+'</b><span>matching owned books</span></div><button class="primary" id="saveSmartShelf">✨ Save as Smart Shelf</button><button class="pill" id="clearPower">Clear filters</button></section>'+
+ '<section class="smart-shelves"><div class="power-section-title"><div><div class="eyebrow">YOUR SAVED MAGIC</div><h2>Smart Shelves</h2></div><span>'+shelves.length+' saved</span></div>'+(shelfCards||'<div class="power-empty small">No Smart Shelves yet. Build a search above, then save it. 📚</div>')+'</section>'+
+ '<section class="power-results"><div class="power-section-title"><div><div class="eyebrow">LIVE RESULTS</div><h2>'+res.length+' book'+(res.length===1?'':'s')+'</h2></div></div><div class="grid">'+cards+'</div></section><div class="insight-note">🪄 Smart Shelves save the <b>rules</b>, not a frozen list of books. When your library data changes, the shelf changes with it. They are included in your normal JSON backup.</div>'
+}
+function readPowerControls(){var c={};c.q=(el('#powerQ')&&el('#powerQ').value)||'';['Genre','Status','Length','Spice','Series'].forEach(function(k){var n=el('#power'+k);c[k.toLowerCase()]=n?n.value:'Any'});c.favorite=!!(el('#powerFavorite')&&el('#powerFavorite').checked);c.collector=!!(el('#powerCollector')&&el('#powerCollector').checked);c.signed=!!(el('#powerSigned')&&el('#powerSigned').checked);state.powerCriteria=c;save();return c}
+
 function render(){
  document.querySelectorAll("[data-view]").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===state.view)});
  var c=el("#content");
@@ -535,6 +567,7 @@ function render(){
  else if(state.view==="oracle")c.innerHTML=tbrOracle();
  else if(state.view==="cleanup")c.innerHTML=cleanupMode();
  else if(state.view==="achievements")c.innerHTML=achievementsPage();
+ else if(state.view==="power")c.innerHTML=powerSearchPage();
  else if(state.view==="favorites")c.innerHTML=shelf("⭐ Favorites",visible().filter(function(b){return b.favorite}));
  else if(state.view==="backup")c.innerHTML=backup();
  else if(state.view==="sync")c.innerHTML=syncPage();
@@ -1331,8 +1364,8 @@ function showMatch(f,source){
 }
 function prefill(f){var intel=intelligenceFor(f);var seriesName=intel.workBrain?(intel.series||f.series||""):(f.series||intel.series||""),seriesNo=intel.workBrain?(intel.seriesNo||f.seriesNo||""):(f.seriesNo||intel.seriesNo||"");openBook({id:"",workId:"",title:f.title||"",author:f.author||"",genres:intel.genres,tags:intel.tags,series:seriesName,seriesNo:seriesNo,seriesSuggested:(!intel.workBrain&&!!f.seriesSuggested),seriesConfidence:intel.workBrain?"confirmed by you":(f.seriesConfidence||""),seriesDiagnostics:f.seriesDiagnostics||null,status:"want-to-read",owned:true,wantOwn:false,rating:0,favorite:false,spice:intel.spice,spiceSuggested:!intel.workBrain,spiceConfirmed:!!intel.workBrain,spiceConfidence:intel.spiceConfidence,intelligence:true,workBrain:!!intel.workBrain,intelligenceSource:(intel.workBrain?intel.source:(f.seriesSuggested?((intel.source||"Public book metadata")+" + "+(f.seriesSource||"Series Brain bridge")):intel.source)),readDateUnknown:false,finishedDate:"",cover:f.cover||"",edition:f.edition,notes:""})}
 function closeModal(){stopScanner();el("#modal").classList.add("hidden")}
-function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.20",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-20-backup.json";document.body.appendChild(a);a.click();a.remove()}
-function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
+function exportJSON(){var blob=new Blob([JSON.stringify({app:"Enchanted Bookshop",version:"4.21",exported:now(),books:state.books,seriesCatalog:seriesCatalog,readingChallenges:getChallenges(),workIntelligence:workIntelligence,smartShelves:smartShelfList()},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="enchanted-bookshop-v4-21-backup.json";document.body.appendChild(a);a.click();a.remove()}
+function restoreJSON(file){if(!file)return;var r=new FileReader();r.onload=function(){try{var x=JSON.parse(r.result);if(!Array.isArray(x.books))throw Error("Invalid");state.books=x.books;if(Array.isArray(x.seriesCatalog)){seriesCatalog=x.seriesCatalog;saveSeries()}if(x.readingChallenges)saveChallenges(x.readingChallenges);if(x.workIntelligence&&typeof x.workIntelligence==="object"){workIntelligence=x.workIntelligence;saveWorkIntelligence()}if(Array.isArray(x.smartShelves))state.smartShelves=x.smartShelves;save();render();alert("Restored ✨")}catch(e){alert("That backup could not be read.")}};r.readAsText(file)}
 async function auth(path,email,password){
  var s=getSync();if(!s.url||!s.anon)throw Error("Save your Supabase URL and anon key first.");
  var res=await fetch(s.url+"/auth/v1/"+path,{method:"POST",headers:{"apikey":s.anon,"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})}),j=await res.json();if(!res.ok)throw Error(j.msg||j.message||"Authentication failed");return j
@@ -1429,6 +1462,15 @@ function wirePage(){
  if(el('#oracleReset'))el('#oracleReset').onclick=function(){state.oracleMood='Anything';state.oracleGenre='Any';state.oracleLength='Any';state.oracleSpice='Any';state.oracleSeries='Any';state.oracleFavorites=false;state.oraclePickId='';save();render()};
  if(el('#oracleOpen'))el('#oracleOpen').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleOpen').getAttribute('data-id')});if(b)openCollectorBook(b)};
  if(el('#oracleStart'))el('#oracleStart').onclick=function(){var b=visible().find(function(x){return x.id===el('#oracleStart').getAttribute('data-id')});if(!b)return;b.status='currently-reading';b.updatedAt=now();save();state.view='journal';render();autoSyncMaybe()};
+
+ var powerLive=function(){readPowerControls();render()};
+ ['Genre','Status','Length','Spice','Series'].forEach(function(k){var n=el('#power'+k);if(n)n.onchange=powerLive});
+ ['Favorite','Collector','Signed'].forEach(function(k){var n=el('#power'+k);if(n)n.onchange=powerLive});
+ if(el('#powerQ'))el('#powerQ').oninput=function(){var v=el('#powerQ').value;clearTimeout(window.__powerTimer);window.__powerTimer=setTimeout(function(){state.powerCriteria=Object.assign({},powerCriteria(),{q:v});save();render();var q=el('#powerQ');if(q){q.focus();q.setSelectionRange(v.length,v.length)}},180)};
+ if(el('#clearPower'))el('#clearPower').onclick=function(){state.powerCriteria={q:'',genre:'Any',status:'Any',length:'Any',spice:'Any',series:'Any',favorite:false,collector:false,signed:false};save();render()};
+ if(el('#saveSmartShelf'))el('#saveSmartShelf').onclick=function(){var c=readPowerControls(),name=prompt('Name this Smart Shelf:');if(!name||!name.trim())return;smartShelfList().push({id:'sh_'+Date.now().toString(36),name:name.trim(),criteria:JSON.parse(JSON.stringify(c)),createdAt:now()});save();render()};
+ document.querySelectorAll('[data-smart-open]').forEach(function(btn){btn.onclick=function(){var sh=smartShelfList().find(function(x){return x.id===btn.getAttribute('data-smart-open')});if(sh){state.powerCriteria=JSON.parse(JSON.stringify(sh.criteria||{}));save();render()}}});
+ document.querySelectorAll('[data-smart-delete]').forEach(function(btn){btn.onclick=function(){var id=btn.getAttribute('data-smart-delete'),sh=smartShelfList().find(function(x){return x.id===id});if(!sh)return;if(!confirm('Delete Smart Shelf “'+sh.name+'”? Your books will not be changed.'))return;state.smartShelves=smartShelfList().filter(function(x){return x.id!==id});save();render()}});
 
  document.querySelectorAll('[data-achievement-filter]').forEach(function(btn){btn.onclick=function(){state.achievementFilter=btn.getAttribute('data-achievement-filter')||'All';save();render()}});
 
