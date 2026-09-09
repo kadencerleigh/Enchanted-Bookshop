@@ -627,3 +627,319 @@ html[data-atmosphere="cottagecore"] .mobile-nav,html[data-atmosphere="cottagecor
     z-index:1;
   }
 }
+
+
+/* =========================================================
+   V4.23.3 — ATMOSPHERE CLEANUP / FINALIZATION PASS
+   Shared feature surfaces now obey the active atmosphere.
+   ========================================================= */
+
+/* Default/original keeps the familiar enchanted green + plum identity. */
+:root{
+  --feature-bg:linear-gradient(135deg,rgba(29,46,37,.96),rgba(45,31,41,.92));
+  --feature-card-bg:linear-gradient(145deg,rgba(27,49,38,.94),rgba(35,31,38,.96));
+  --feature-soft-bg:rgba(255,255,255,.025);
+  --feature-input-bg:var(--bg);
+  --feature-border:var(--line);
+  --feature-text:var(--text);
+  --feature-muted:var(--muted);
+  --feature-accent:var(--gold);
+  --feature-accent2:var(--gold2);
+  --feature-chip-bg:var(--panel2);
+  --stack-text:#f7edd7;
+}
+
+/* Cottagecore: light, botanical, honeyed, no leftover dark enchanted gradients. */
+html[data-atmosphere="cottagecore"]{
+  --feature-bg:linear-gradient(135deg,#d9e3cf 0%,#efe0c7 58%,#f6ead4 100%);
+  --feature-card-bg:linear-gradient(145deg,#fbf7ed,#eee5d3);
+  --feature-soft-bg:rgba(113,134,107,.08);
+  --feature-input-bg:#fbf7ed;
+  --feature-border:#c9bea6;
+  --feature-text:#34382f;
+  --feature-muted:#716c60;
+  --feature-accent:#a97a49;
+  --feature-accent2:#7c603a;
+  --feature-chip-bg:#e7dfca;
+  --stack-text:#fff8e9;
+}
+
+/* Rainy Bookstore: storm slate + blue-gray + warm lamplight. */
+html[data-atmosphere="rainy"]{
+  --feature-bg:linear-gradient(135deg,#20363f 0%,#26363d 58%,#302c37 100%);
+  --feature-card-bg:linear-gradient(145deg,#1a2a31,#22343b);
+  --feature-soft-bg:rgba(139,170,182,.07);
+  --feature-input-bg:#132128;
+  --feature-border:#3a5360;
+  --feature-text:#edf1f0;
+  --feature-muted:#aeb9bc;
+  --feature-accent:#c99d62;
+  --feature-accent2:#e6c58e;
+  --feature-chip-bg:#22363e;
+  --stack-text:#f3eee5;
+}
+
+/* Autumn: cocoa, rust, copper, burgundy — no green/plum carryover. */
+html[data-atmosphere="autumn"]{
+  --feature-bg:linear-gradient(135deg,#4f2d1d 0%,#713c2c 58%,#51282d 100%);
+  --feature-card-bg:linear-gradient(145deg,#342016,#43251b);
+  --feature-soft-bg:rgba(211,154,83,.08);
+  --feature-input-bg:#261712;
+  --feature-border:#62402d;
+  --feature-text:#f7ead6;
+  --feature-muted:#c8b29e;
+  --feature-accent:#db9e52;
+  --feature-accent2:#f0bf7b;
+  --feature-chip-bg:#3b261b;
+  --stack-text:#fff0d7;
+}
+
+/* Gothic correction: TRUE black + blood red + oxblood + antique gold.
+   No green in theme-owned decorative surfaces. */
+html[data-atmosphere="gothic"]{
+  --bg:#090708;
+  --panel:#110c0e;
+  --panel2:#1b1014;
+  --text:#f1e7dc;
+  --muted:#b4a5a3;
+  --gold:#b9975f;
+  --gold2:#d8bd8b;
+  --green:#171313;
+  --burg:#650f1d;
+  --line:#49232b;
+  --red:#8b1729;
+  --yellow:#a7814f;
+  --ok:#6f786e;
+  --purple:#4b2e3b;
+
+  --body-bg:
+    radial-gradient(circle at 80% -5%,rgba(126,15,35,.24),transparent 30%),
+    radial-gradient(circle at 15% 35%,rgba(77,8,22,.14),transparent 34%),
+    linear-gradient(155deg,#080607 0%,#10090b 52%,#050405 100%);
+  --side-bg:rgba(6,4,5,.97);
+  --top-bg:rgba(9,7,8,.94);
+  --hero-bg:linear-gradient(130deg,#100b0d 0%,#3b0d17 58%,#18090d 100%);
+  --cover-bg:linear-gradient(145deg,#160b0e,#54111f);
+  --soft-accent:rgba(139,23,41,.14);
+  --soft-glow:rgba(185,151,95,.2);
+  --page-shadow:rgba(0,0,0,.68);
+  --decor:"🥀 ✦ ☾ ❦";
+  --decor-color:rgba(156,31,50,.34);
+
+  --feature-bg:linear-gradient(135deg,#110b0d 0%,#4b0e1b 58%,#18090d 100%);
+  --feature-card-bg:linear-gradient(145deg,#110b0d,#2b0d13);
+  --feature-soft-bg:rgba(126,15,35,.09);
+  --feature-input-bg:#0c090a;
+  --feature-border:#54252e;
+  --feature-text:#f5eadc;
+  --feature-muted:#bcaaa6;
+  --feature-accent:#bd985f;
+  --feature-accent2:#dfc18b;
+  --feature-chip-bg:#211014;
+  --stack-text:#fff0e3;
+
+  --stack0:linear-gradient(90deg,#25090f,#7c1527);
+  --stack1:linear-gradient(90deg,#5d0e1c,#13090c);
+  --stack2:linear-gradient(90deg,#18090d,#8a1a2d);
+  --stack3:linear-gradient(90deg,#751323,#270b11);
+  --stack4:linear-gradient(90deg,#12090b,#5f101d);
+}
+
+/* Mushroom Forest: moss + bark + mushroom red + amber. */
+html[data-atmosphere="mushroom"]{
+  --feature-bg:linear-gradient(135deg,#263a25 0%,#3f4026 58%,#533027 100%);
+  --feature-card-bg:linear-gradient(145deg,#1b2b1a,#2c3825);
+  --feature-soft-bg:rgba(105,137,89,.08);
+  --feature-input-bg:#111d11;
+  --feature-border:#46583f;
+  --feature-text:#f2e7d1;
+  --feature-muted:#b8b19d;
+  --feature-accent:#d2a85e;
+  --feature-accent2:#edcc8e;
+  --feature-chip-bg:#293728;
+  --stack-text:#fff0d2;
+}
+
+/* Shared heroes: the selected atmosphere owns the room. */
+html[data-atmosphere] .series-brain-hero,
+html[data-atmosphere] .wish-hero,
+html[data-atmosphere] .journal-hero,
+html[data-atmosphere] .insights-hero,
+html[data-atmosphere] .oracle-hero,
+html[data-atmosphere] .cleanup-hero,
+html[data-atmosphere] .achievement-hero,
+html[data-atmosphere] .power-hero,
+html[data-atmosphere] .backup-hero{
+  background:var(--feature-bg) !important;
+  border-color:var(--feature-border) !important;
+  color:var(--feature-text) !important;
+  box-shadow:0 20px 50px var(--page-shadow);
+}
+html[data-atmosphere] .series-brain-hero .muted,
+html[data-atmosphere] .wish-hero p,
+html[data-atmosphere] .journal-hero p,
+html[data-atmosphere] .insights-hero p,
+html[data-atmosphere] .oracle-hero p,
+html[data-atmosphere] .cleanup-hero p,
+html[data-atmosphere] .achievement-hero p,
+html[data-atmosphere] .power-hero p,
+html[data-atmosphere] .backup-hero p{
+  color:var(--feature-muted) !important;
+}
+
+/* Shared feature cards / panels that previously carried original-theme colors. */
+html[data-atmosphere] .series-v2-card,
+html[data-atmosphere] .wish-card,
+html[data-atmosphere] .wish-gap,
+html[data-atmosphere] .oracle-result,
+html[data-atmosphere] .smart-shelf-card,
+html[data-atmosphere] .achievement-card.unlocked{
+  background:var(--feature-card-bg) !important;
+  border-color:var(--feature-border) !important;
+  color:var(--feature-text) !important;
+}
+html[data-atmosphere] .wish-stats>div,
+html[data-atmosphere] .journal-stats>div,
+html[data-atmosphere] .insight-kpis>div,
+html[data-atmosphere] .cleanup-stat,
+html[data-atmosphere] .achievement-summary>div,
+html[data-atmosphere] .backup-health-card,
+html[data-atmosphere] .power-controls,
+html[data-atmosphere] .browse-panel{
+  background:var(--panel) !important;
+  border-color:var(--feature-border) !important;
+}
+html[data-atmosphere] .wish-cover,
+html[data-atmosphere] .wish-owned,
+html[data-atmosphere] .wish-tags span,
+html[data-atmosphere] .series-metric,
+html[data-atmosphere] .series-next,
+html[data-atmosphere] .oracle-reasons span{
+  background:var(--feature-chip-bg) !important;
+  border-color:var(--feature-border) !important;
+}
+
+/* Inputs/selects must stay readable in light AND dark atmospheres. */
+html[data-atmosphere] .power-field input,
+html[data-atmosphere] .power-field select,
+html[data-atmosphere] .oracle-field select,
+html[data-atmosphere] .field input,
+html[data-atmosphere] .field select,
+html[data-atmosphere] .field textarea,
+html[data-atmosphere] .challenge-set input{
+  background:var(--feature-input-bg) !important;
+  color:var(--feature-text) !important;
+  border-color:var(--feature-border) !important;
+}
+
+/* Theme-aware secondary text. */
+html[data-atmosphere] .wish-stats span,
+html[data-atmosphere] .wish-body p,
+html[data-atmosphere] .wish-gap p,
+html[data-atmosphere] .series-v2-card .muted,
+html[data-atmosphere] .journal-stats span,
+html[data-atmosphere] .journal-book-body p,
+html[data-atmosphere] .journal-progress-label,
+html[data-atmosphere] .insight-kpis span,
+html[data-atmosphere] .oracle-author,
+html[data-atmosphere] .cleanup-stat span,
+html[data-atmosphere] .achievement-body p,
+html[data-atmosphere] .achievement-body small,
+html[data-atmosphere] .power-count span{
+  color:var(--feature-muted) !important;
+}
+
+/* Accent consistency. */
+html[data-atmosphere] .wish-stats b,
+html[data-atmosphere] .journal-stats b,
+html[data-atmosphere] .insight-kpis b,
+html[data-atmosphere] .oracle-pool b,
+html[data-atmosphere] .achievement-summary>div>b,
+html[data-atmosphere] .power-count b{
+  color:var(--feature-accent2) !important;
+}
+html[data-atmosphere] .wish-tabs .active,
+html[data-atmosphere] .primary,
+html[data-atmosphere] .top .add{
+  background:var(--feature-accent) !important;
+}
+
+/* Browse spines: remove hard-coded original-theme gradients completely. */
+html[data-atmosphere] .stack-book{
+  color:var(--stack-text) !important;
+  border-color:color-mix(in srgb,var(--feature-accent) 36%,transparent) !important;
+}
+html[data-atmosphere] .stack-book:nth-child(7n+1){background:var(--stack0) !important}
+html[data-atmosphere] .stack-book:nth-child(7n+2){background:var(--stack1) !important}
+html[data-atmosphere] .stack-book:nth-child(7n+3){background:var(--stack2) !important}
+html[data-atmosphere] .stack-book:nth-child(7n+4){background:var(--stack3) !important}
+html[data-atmosphere] .stack-book:nth-child(7n+5){background:var(--stack4) !important}
+html[data-atmosphere] .stack-book:nth-child(7n+6){background:var(--stack0) !important}
+html[data-atmosphere] .stack-book:nth-child(7n){background:var(--stack2) !important}
+
+/* Decorative stack glyphs also belong to the active atmosphere. */
+html[data-atmosphere="cottagecore"] .stack-book:before{content:"❀"}
+html[data-atmosphere="cottagecore"] .stack-book:after{content:"🌿"}
+html[data-atmosphere="rainy"] .stack-book:before{content:"☂"}
+html[data-atmosphere="rainy"] .stack-book:after{content:"✦"}
+html[data-atmosphere="autumn"] .stack-book:before{content:"🍂"}
+html[data-atmosphere="autumn"] .stack-book:after{content:"✦"}
+html[data-atmosphere="gothic"] .stack-book:before{content:"🥀"}
+html[data-atmosphere="gothic"] .stack-book:after{content:"❦"}
+html[data-atmosphere="mushroom"] .stack-book:before{content:"🍄"}
+html[data-atmosphere="mushroom"] .stack-book:after{content:"🌿"}
+
+/* Cottagecore contrast fix: dark readable text on its light feature gradients/cards. */
+html[data-atmosphere="cottagecore"] .series-brain-hero,
+html[data-atmosphere="cottagecore"] .wish-hero,
+html[data-atmosphere="cottagecore"] .journal-hero,
+html[data-atmosphere="cottagecore"] .insights-hero,
+html[data-atmosphere="cottagecore"] .oracle-hero,
+html[data-atmosphere="cottagecore"] .cleanup-hero,
+html[data-atmosphere="cottagecore"] .achievement-hero,
+html[data-atmosphere="cottagecore"] .power-hero,
+html[data-atmosphere="cottagecore"] .backup-hero,
+html[data-atmosphere="cottagecore"] .series-v2-card,
+html[data-atmosphere="cottagecore"] .wish-card,
+html[data-atmosphere="cottagecore"] .wish-gap,
+html[data-atmosphere="cottagecore"] .oracle-result,
+html[data-atmosphere="cottagecore"] .smart-shelf-card,
+html[data-atmosphere="cottagecore"] .achievement-card.unlocked{
+  color:#34382f !important;
+}
+html[data-atmosphere="cottagecore"] .primary,
+html[data-atmosphere="cottagecore"] .top .add,
+html[data-atmosphere="cottagecore"] .wish-tabs .active{
+  color:#2f281f !important;
+}
+
+/* Gothic: enforce red/black ownership on key surfaces; no green leakage. */
+html[data-atmosphere="gothic"] .series-v2-card,
+html[data-atmosphere="gothic"] .wish-card,
+html[data-atmosphere="gothic"] .wish-gap,
+html[data-atmosphere="gothic"] .oracle-result,
+html[data-atmosphere="gothic"] .smart-shelf-card,
+html[data-atmosphere="gothic"] .achievement-card.unlocked{
+  box-shadow:0 14px 36px rgba(73,4,17,.22),0 12px 28px rgba(0,0,0,.34);
+}
+html[data-atmosphere="gothic"] .mobile-nav button.active{
+  background:#2d0b12 !important;
+}
+html[data-atmosphere="gothic"] .scanbtn{
+  background:linear-gradient(135deg,#7b1325,#1a090d) !important;
+}
+html[data-atmosphere="gothic"] .atmosphere-preview-gothic{
+  background:radial-gradient(circle at 74% 18%,rgba(185,151,95,.2),transparent 22%),linear-gradient(145deg,#060506,#741326) !important;
+}
+
+/* Cottagecore mobile nav remains a warm paper surface. */
+html[data-atmosphere="cottagecore"] .mobile-nav,
+html[data-atmosphere="cottagecore"] .mobile-more-card{
+  background:rgba(244,238,222,.98) !important;
+  color:#34382f;
+}
+
+/* The theme picker itself should preview corrected Gothic identity. */
+html[data-atmosphere] .atmosphere-card{
+  border-color:var(--feature-border);
+}
