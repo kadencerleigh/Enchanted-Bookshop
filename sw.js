@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-10-collector-intelligence-2";
+const CACHE="enchanted-bookshop-v4-11-library-view-switcher";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.10.0",
- "./app.js?v=4.10.0",
- "./manifest.json?v=4.10.0",
- "./icon-192.png?v=4.10.0",
+ "./styles.css?v=4.11.0",
+ "./app.js?v=4.11.0",
+ "./manifest.json?v=4.11.0",
+ "./icon-192.png?v=4.11.0",
  "./icon-512.png"
 ];
 
