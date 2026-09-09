@@ -1,0 +1,23 @@
+ENCHANTED BOOKSHOP V4.27.7 — SERIES CANDIDATE ACCEPTANCE + ALWAYS-ON DIAGNOSTICS
+
+SERIES DISCOVERY
+• Keeps the focused quoted Open Library series-query path.
+• Allows focused quoted-query candidates even when author metadata is missing.
+• Preserves author checking when author metadata exists.
+• Keeps noisy author-only catalog results diagnostics-only.
+• Preserves richer candidate metadata for numbering/type inference.
+• Strengthens dedupe precedence so local/numbered copies win over unnumbered duplicates.
+• Diagnostics are now ALWAYS visible on the proposal screen during testing.
+
+PRESERVED
+• V4.27.5 desktop modal positioning fix
+• Desktop delegated button handling
+• Ownership / reading intent / wishlist independence
+• Owned-copy truth
+• Want to Read / Want to Own View/Edit
+• Book Detail, atmospheres, challenge sync
+• Backup payload compatibility remains 4.22.1
+• Mobile More guard and desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
