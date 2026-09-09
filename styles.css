@@ -943,3 +943,147 @@ html[data-atmosphere="cottagecore"] .mobile-more-card{
 html[data-atmosphere] .atmosphere-card{
   border-color:var(--feature-border);
 }
+
+
+/* =========================================================
+   V4.23.4 — LIBRARY ATMOSPHERE INHERITANCE FIX
+   Final targeted pass for Library view surfaces.
+   ========================================================= */
+
+/* Make the Library view switcher panel atmosphere-owned. */
+html[data-atmosphere] .library-view-card,
+html[data-atmosphere] .library-view-switcher,
+html[data-atmosphere] .view-switcher-card{
+  background:var(--feature-bg) !important;
+  border-color:var(--feature-border) !important;
+  color:var(--feature-text) !important;
+  box-shadow:0 18px 40px var(--page-shadow) !important;
+}
+html[data-atmosphere] .library-view-card .muted,
+html[data-atmosphere] .library-view-switcher .muted,
+html[data-atmosphere] .view-switcher-card .muted{
+  color:var(--feature-muted) !important;
+}
+
+/* The active library view button uses the atmosphere accent. */
+html[data-atmosphere] .view-btn.active,
+html[data-atmosphere] .library-view-btn.active,
+html[data-atmosphere] .view-switcher button.active{
+  background:var(--feature-accent) !important;
+  color:#2f281f !important;
+  border-color:var(--feature-accent) !important;
+}
+
+/* Inactive view buttons should match the atmosphere instead of default enchanted. */
+html[data-atmosphere] .view-btn:not(.active),
+html[data-atmosphere] .library-view-btn:not(.active),
+html[data-atmosphere] .view-switcher button:not(.active){
+  background:var(--feature-input-bg) !important;
+  color:var(--feature-muted) !important;
+  border-color:var(--feature-border) !important;
+}
+
+/* Library cover/card frames: theme-owned framing only, NEVER tint the actual image. */
+html[data-atmosphere] .book-cover-card,
+html[data-atmosphere] .cover-card,
+html[data-atmosphere] .library-cover-card,
+html[data-atmosphere] .book-card-cover,
+html[data-atmosphere] .library-grid .book-card,
+html[data-atmosphere] .covers-grid .book-card{
+  background:var(--feature-card-bg) !important;
+  border-color:var(--feature-border) !important;
+  box-shadow:0 14px 30px var(--page-shadow) !important;
+}
+
+/* Keep cover images pristine and unfiltered. */
+html[data-atmosphere] .book-cover-card img,
+html[data-atmosphere] .cover-card img,
+html[data-atmosphere] .library-cover-card img,
+html[data-atmosphere] .book-card-cover img,
+html[data-atmosphere] .library-grid .book-card img,
+html[data-atmosphere] .covers-grid .book-card img{
+  filter:none !important;
+  mix-blend-mode:normal !important;
+  opacity:1 !important;
+}
+
+/* Atmosphere-specific Library framing refinements. */
+html[data-atmosphere="cottagecore"] .library-view-card,
+html[data-atmosphere="cottagecore"] .library-view-switcher,
+html[data-atmosphere="cottagecore"] .view-switcher-card{
+  background:linear-gradient(135deg,#d7dfcf 0%,#eee1cf 60%,#f6ead7 100%) !important;
+  color:#34382f !important;
+}
+html[data-atmosphere="cottagecore"] .book-cover-card,
+html[data-atmosphere="cottagecore"] .cover-card,
+html[data-atmosphere="cottagecore"] .library-cover-card,
+html[data-atmosphere="cottagecore"] .book-card-cover,
+html[data-atmosphere="cottagecore"] .library-grid .book-card,
+html[data-atmosphere="cottagecore"] .covers-grid .book-card{
+  background:linear-gradient(145deg,#8f9c83,#c9a47e) !important;
+  border-color:#b7ad96 !important;
+}
+
+html[data-atmosphere="rainy"] .library-view-card,
+html[data-atmosphere="rainy"] .library-view-switcher,
+html[data-atmosphere="rainy"] .view-switcher-card{
+  background:linear-gradient(135deg,#22353d 0%,#2c3b42 60%,#302f39 100%) !important;
+}
+html[data-atmosphere="rainy"] .book-cover-card,
+html[data-atmosphere="rainy"] .cover-card,
+html[data-atmosphere="rainy"] .library-cover-card,
+html[data-atmosphere="rainy"] .book-card-cover,
+html[data-atmosphere="rainy"] .library-grid .book-card,
+html[data-atmosphere="rainy"] .covers-grid .book-card{
+  background:linear-gradient(145deg,#263943,#3e4950) !important;
+  border-color:#405a66 !important;
+}
+
+html[data-atmosphere="autumn"] .library-view-card,
+html[data-atmosphere="autumn"] .library-view-switcher,
+html[data-atmosphere="autumn"] .view-switcher-card{
+  background:linear-gradient(135deg,#4a291c 0%,#6b3b2d 60%,#542630 100%) !important;
+}
+html[data-atmosphere="autumn"] .book-cover-card,
+html[data-atmosphere="autumn"] .cover-card,
+html[data-atmosphere="autumn"] .library-cover-card,
+html[data-atmosphere="autumn"] .book-card-cover,
+html[data-atmosphere="autumn"] .library-grid .book-card,
+html[data-atmosphere="autumn"] .covers-grid .book-card{
+  background:linear-gradient(145deg,#5b321f,#8a4f32) !important;
+  border-color:#744530 !important;
+}
+
+html[data-atmosphere="gothic"] .library-view-card,
+html[data-atmosphere="gothic"] .library-view-switcher,
+html[data-atmosphere="gothic"] .view-switcher-card{
+  background:linear-gradient(135deg,#10090b 0%,#4b0d18 58%,#1c090d 100%) !important;
+  border-color:#5b2630 !important;
+}
+html[data-atmosphere="gothic"] .book-cover-card,
+html[data-atmosphere="gothic"] .cover-card,
+html[data-atmosphere="gothic"] .library-cover-card,
+html[data-atmosphere="gothic"] .book-card-cover,
+html[data-atmosphere="gothic"] .library-grid .book-card,
+html[data-atmosphere="gothic"] .covers-grid .book-card{
+  background:linear-gradient(145deg,#18090d,#60101e) !important;
+  border-color:#6c1e2e !important;
+  box-shadow:0 16px 34px rgba(85,4,20,.32),0 10px 24px rgba(0,0,0,.48) !important;
+}
+
+html[data-atmosphere="mushroom"] .library-view-card,
+html[data-atmosphere="mushroom"] .library-view-switcher,
+html[data-atmosphere="mushroom"] .view-switcher-card{
+  background:linear-gradient(135deg,#293a25 0%,#414229 58%,#563229 100%) !important;
+}
+html[data-atmosphere="mushroom"] .book-cover-card,
+html[data-atmosphere="mushroom"] .cover-card,
+html[data-atmosphere="mushroom"] .library-cover-card,
+html[data-atmosphere="mushroom"] .book-card-cover,
+html[data-atmosphere="mushroom"] .library-grid .book-card,
+html[data-atmosphere="mushroom"] .covers-grid .book-card{
+  background:linear-gradient(145deg,#30402d,#5d4634) !important;
+  border-color:#4b5b45 !important;
+}
+
+/* Original stays original on purpose. */
