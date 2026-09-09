@@ -1,0 +1,20 @@
+ENCHANTED BOOKSHOP — V4.28.1
+Collector Intelligence 3.0 — Same-Work Grouping Patch
+
+TARGETED FIX ONLY
+- Strengthens Collector Intelligence same-work recognition without changing the data schema.
+- Existing physical copies can group even when their saved workId values differ.
+- Exact normalized title + author remains the primary non-ID match.
+- Harmless Unicode/formatting differences are normalized before comparison.
+- Matching series + volume is a conservative fallback when author formatting differs.
+- Ownership truth remains unchanged: only owned===true records count as physical copies.
+- Missing ISBN truth remains unchanged.
+- Collector features are still never invented.
+- Backup payload compatibility remains 4.22.1.
+- No Supabase SQL changes.
+
+RETEST
+Open either As Good As Dead record while both the real copy and temporary collector copy still exist.
+Expected Collector Intelligence summary: both owned records should appear under the same work.
+If the temporary record has no ISBN, missing-ISBN count should still be 1.
+Distinct-edition count depends on the edition metadata saved on the two records.

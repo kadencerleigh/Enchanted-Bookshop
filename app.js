@@ -1128,7 +1128,28 @@ async function repairMissingCoverFromEditor(book,button){
 
 // V4.9 — The Collector's Library: derived Work → Edition → Copy presentation.
 // Existing saved book records remain the source of truth; no migration is required.
-function sameWork(a,b){return !!(a&&b&&norm(a.title)===norm(b.title)&&norm(a.author||'')===norm(b.author||''))}
+function collectorWorkText(v){
+ var s=String(v||"");
+ try{s=s.normalize("NFKD")}catch(e){}
+ return norm(s.replace(/[\u0300-\u036f\u200B-\u200D\uFEFF]/g," "))
+}
+function collectorAuthorKey(v){
+ var s=collectorWorkText(v);
+ // Keep this conservative: normalize harmless formatting only, never guess authors.
+ return s.replace(/\b(author|by)\b/g," ").replace(/\s+/g," ").trim()
+}
+function sameWork(a,b){
+ if(!a||!b)return false;
+ var aw=String(a.workId||"").trim(),bw=String(b.workId||"").trim();
+ if(aw&&bw&&aw===bw)return true;
+ var at=collectorWorkText(a.title),bt=collectorWorkText(b.title);
+ if(!at||at!==bt)return false;
+ var aa=collectorAuthorKey(a.author||""),ba=collectorAuthorKey(b.author||"");
+ if(aa&&ba&&aa===ba)return true;
+ // If an author field was formatted differently, matching series + volume can confirm the same work.
+ var as=collectorWorkText(a.series||""),bs=collectorWorkText(b.series||""),an=collectorWorkText(a.seriesNo||""),bn=collectorWorkText(b.seriesNo||"");
+ return !!(as&&bs&&as===bs&&an&&bn&&an===bn)
+}
 function editionKey(b){var e=(b&&b.edition)||{},isbn=cleanISBN(e.isbn||'');return isbn?('isbn:'+isbn):['meta',norm(e.name||''),norm(e.format||''),norm(e.publisher||''),String(e.publicationDate||'')].join('|')}
 function workCopiesFor(b){return visible().filter(function(x){return sameWork(x,b)&&x.owned===true})}
 function editionGroupsFor(b){var groups={};workCopiesFor(b).forEach(function(x){var k=editionKey(x);if(!groups[k])groups[k]=[];groups[k].push(x)});return Object.keys(groups).map(function(k){return groups[k]})}
