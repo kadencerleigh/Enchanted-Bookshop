@@ -1,0 +1,32 @@
+ENCHANTED BOOKSHOP V4.27.13 — #1 INFERENCE TRACE
+
+PURPOSE
+V4.27.12 preserved the correct four-title lineup but the first volume remained unnumbered.
+This build diagnoses the exact values reaching the #1 inference step instead of guessing again.
+
+DISCOVERY DIAGNOSTICS NOW SHOW
+• Candidate title
+• Requested series name
+• Normalized title
+• Normalized series name
+• Whether the eponymous #1 match fired
+• Incoming number → outgoing number
+
+UNCHANGED
+• Retrieval
+• Open Library query behavior
+• Collection/bundle member extraction
+• Filtering
+• Deduplication
+• #2 / #3 / Kill Joy inference
+• User confirmation flow
+
+PRESERVED
+• Public metadata does not imply ownership
+• Want to Read / Want to Own / ownership independence
+• Desktop modal/button fixes
+• Backup compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
