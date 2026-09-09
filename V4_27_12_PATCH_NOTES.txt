@@ -1,0 +1,25 @@
+ENCHANTED BOOKSHOP V4.27.12 — FIRST VOLUME NUMBER PATCH
+
+TARGETED FIX ONLY
+• Fixes #1 inference for the eponymous first volume when the searched series name
+  differs slightly in articles, punctuation, or possessive/plural wording.
+• Does NOT change retrieval, collection evidence extraction, filtering, or deduplication.
+• V4.27.11's clean four-title result set is preserved.
+
+EXPECTED TEST RESULT
+0.5 | Kill Joy | Novella / Extra
+1 | A Good Girl's Guide to Murder | Main novel
+2 | Good Girl Bad Blood | Main novel
+3 | As Good As Dead | Main novel
+
+PRESERVED
+• Public metadata does not imply ownership
+• Want to Read / Want to Own / ownership independence
+• User confirmation required
+• Desktop modal/button fixes
+• Diagnostics
+• Backup compatibility remains 4.22.1
+• Challenge sync, atmospheres, Mobile More, desktop sidebar scroll
+
+NO SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
