@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-15-reading-journal-2";
+const CACHE="enchanted-bookshop-v4-15-1-auto-reading-percentage";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.15.0",
- "./app.js?v=4.15.0",
- "./manifest.json?v=4.15.0",
- "./icon-192.png?v=4.15.0",
+ "./styles.css?v=4.15.1",
+ "./app.js?v=4.15.1",
+ "./manifest.json?v=4.15.1",
+ "./icon-192.png?v=4.15.1",
  "./icon-512.png"
 ];
 
