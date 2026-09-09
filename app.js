@@ -865,7 +865,7 @@ function collectorChips(items){return uniqText(items||[]).map(function(x){return
 function collectorEditionMeta(b){var e=(b&&b.edition)||{},a=[];if(e.format)a.push(e.format);if(e.publisher)a.push(e.publisher);if(e.publicationDate)a.push(e.publicationDate);if(e.isbn)a.push('ISBN '+cleanISBN(e.isbn));return a.map(esc).join(' • ')}
 function detailStatusLabel(x){var m={'want-to-read':'Want to Read','currently-reading':'Currently Reading','read':'Read','dnf':'DNF','rereading':'Rereading'};return m[x]||String(x||'Want to Read').replace(/-/g,' ')}
 function detailLength(p){p=+p||0;if(!p)return'';return p<=300?'Short read':p<=450?'Medium read':'Long read'}
-function detailSpice(n){n=+n||0;var labels=['Clean','Mild','Steamy','Spicy','Very Spicy','Explicit'];return (n?Array(n).fill('🌶️').join(''):'🌱')+' '+labels[Math.max(0,Math.min(5,n))]}
+function detailSpice(n,confidence){if((confidence||'unknown')==='unknown'&&(n===null||n===undefined||+n===0))return '❔ Unknown';n=+n||0;var labels=['Clean','Mild','Steamy','Spicy','Very Spicy','Explicit'];return (n?Array(n).fill('🌶️').join(''):'🌱')+' '+labels[Math.max(0,Math.min(5,n))]}
 function detailLatestJournal(b){var a=[].concat(b.readingJournal||[]);if(!a.length)return null;a.sort(function(x,y){return String(y.updatedAt||y.createdAt||y.date||'').localeCompare(String(x.updatedAt||x.createdAt||x.date||''))});return a[0]}
 function detailSeriesContext(series,seriesNo){
  if(!series)return'';var cat=getSeries(series),bits=[];if(seriesNo)bits.push('Book '+seriesNo);if(cat&&!cat.deleted&&Array.isArray(cat.books)&&cat.books.length)bits.push((seriesNo?'of ':'Series has ')+cat.books.length+(seriesNo?'':' cataloged books'));else bits.push('Series lineup not confirmed');
@@ -887,7 +887,7 @@ function openCollectorBook(b){
  '<div class="detail-actions"><button class="primary" id="detailReadingAction">'+action+'</button><button class="pill" id="detailFavorite">'+(b.favorite?'★ Favorite':'☆ Favorite')+'</button><button class="pill" id="detailEdit">✏️ Edit Book</button></div></div></section>'+
  '<section class="detail-glance"><div class="detail-section-head"><div><div class="eyebrow">🧙 BOOK AT A GLANCE</div><h2>The important bits</h2></div></div><div class="detail-glance-grid">'+
  '<div><span>Genres</span><b class="detail-genre-chips">'+(genres.length?collectorChips(genres):'<em>Not set</em>')+'</b></div>'+
- '<div><span>Spice</span><b>'+detailSpice(b.spice||0)+'</b></div>'+
+ '<div><span>Spice</span><b>'+detailSpice(b.spice,b.spiceConfidence)+'</b></div>'+
  '<div><span>Length</span><b>'+(pages?pages+' pages'+(detailLength(pages)?' • '+detailLength(pages):''):'Unknown')+'</b></div>'+
  '<div><span>Format</span><b>'+esc(e.format||'Unknown')+'</b></div>'+
  '<div><span>Status</span><b>'+esc(status)+'</b></div><div><span>Rating</span><b>'+rating+'</b></div></div></section>'+
@@ -949,14 +949,48 @@ async function searchWorksNoISBN(query){
  query=String(query||"").trim();if(!query)return[];
  var out=[],seen={};
  function add(x){x=normalizeWorkSearchResult(x);if(!x.title)return;var k=workSearchKey(x);if(!k||seen[k])return;seen[k]=1;out.push(x)}
- try{
-  var gr=await cachedFetchJSON("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(query)+"&maxResults=12");
-  if(gr.ok)((gr.data&&gr.data.items)||[]).forEach(function(it){var v=it.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");add({title:v.title||"",author:(v.authors||[]).join(", "),cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",genres:v.categories||[],description:v.description||"",series:ser.series,seriesNo:ser.seriesNo,publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",source:"Google Books"})})
- }catch(e){}
- try{
-  var or=await cachedFetchJSON("https://openlibrary.org/search.json?q="+encodeURIComponent(query)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series");
-  if(or.ok)((or.data&&or.data.docs)||[]).forEach(function(d){var rawSeries=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||""),ser={series:"",seriesNo:""};if(rawSeries){var sm=rawSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm){ser.series=cleanSeriesName(sm[1]);ser.seriesNo=sm[2]||""}}add({title:d.title||"",author:(d.author_name||[]).join(", "),cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false"):"",genres:(d.subject||[]).slice(0,8),series:ser.series,seriesNo:ser.seriesNo,publicationDate:d.first_publish_year||"",pages:d.number_of_pages_median||"",source:"Open Library"})})
- }catch(e){}
+ async function google(q){
+  try{
+   var gr=await cachedFetchJSON("https://www.googleapis.com/books/v1/volumes?q="+encodeURIComponent(q)+"&maxResults=12");
+   if(gr.ok)((gr.data&&gr.data.items)||[]).forEach(function(it){var v=it.volumeInfo||{},ser=inferSeries(v.title||"",v.description||"");add({title:v.title||"",author:(v.authors||[]).join(", "),cover:(v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail))||"",genres:v.categories||[],description:v.description||"",series:ser.series,seriesNo:ser.seriesNo,publisher:v.publisher||"",publicationDate:v.publishedDate||"",pages:v.pageCount||"",source:"Google Books"})})
+  }catch(e){}
+ }
+ async function openlib(q,asTitle){
+  try{
+   var url=asTitle
+    ? "https://openlibrary.org/search.json?title="+encodeURIComponent(q)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series"
+    : "https://openlibrary.org/search.json?q="+encodeURIComponent(q)+"&limit=12&fields=key,title,author_name,cover_i,first_publish_year,number_of_pages_median,subject,series";
+   var or=await cachedFetchJSON(url);
+   if(or.ok)((or.data&&or.data.docs)||[]).forEach(function(d){var rawSeries=Array.isArray(d.series)?String(d.series[0]||""):String(d.series||""),ser={series:"",seriesNo:""};if(rawSeries){var sm=rawSeries.match(/^(.*?)(?:\s*(?:#|book\s*)?(\d+(?:\.\d+)?))?$/);if(sm){ser.series=cleanSeriesName(sm[1]);ser.seriesNo=sm[2]||""}}add({title:d.title||"",author:(d.author_name||[]).join(", "),cover:d.cover_i?("https://covers.openlibrary.org/b/id/"+d.cover_i+"-L.jpg?default=false"):"",genres:(d.subject||[]).slice(0,8),series:ser.series,seriesNo:ser.seriesNo,publicationDate:d.first_publish_year||"",pages:d.number_of_pages_median||"",source:"Open Library"})})
+  }catch(e){}
+ }
+ function titleFallbacks(q){
+  var clean=String(q||"").replace(/[“”"'!?(),:;]/g," ").replace(/\s+/g," ").trim(),a=clean.split(" ").filter(Boolean),arr=[];
+  function push(x){x=String(x||"").trim();if(x&&arr.indexOf(x)<0)arr.push(x)}
+  push(clean.replace(/\s*&\s*/g," and "));
+  push(clean.replace(/\band\b/ig," & "));
+  if(a.length>=4)push(a.slice(0,-2).join(" "));
+  if(a.length>=6)push(a.slice(0,-3).join(" "));
+  return arr.filter(function(x){return norm(x)!==norm(q)})
+ }
+ function score(x){
+  var qt=norm(query),title=norm(x.title||""),author=norm(x.author||""),sc=0;
+  if(title&&qt.indexOf(title)>=0)sc+=60;
+  title.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=5});
+  author.split(" ").forEach(function(t){if(t.length>2&&qt.indexOf(t)>=0)sc+=7});
+  if(x.cover)sc+=2;
+  return sc
+ }
+
+ await Promise.all([google(query),openlib(query,false)]);
+ if(!out.length){
+  var fallbacks=titleFallbacks(query);
+  for(var i=0;i<fallbacks.length&&!out.length;i++){
+   var f=fallbacks[i];
+   await Promise.all([google('intitle:"'+f+'"'),openlib(f,true)])
+  }
+ }
+ out.sort(function(a,b){return score(b)-score(a)});
  return out.slice(0,16)
 }
 function findExistingWork(f){
@@ -978,14 +1012,14 @@ function repairV426WorkOnlyPlaceholder(b){
 }
 
 function saveDiscoveredWork(f,mode){
- var existing=findExistingWork(f),n;
+ var existing=findExistingWork(f),n,intel=intelligenceFor(f);
  if(existing){
   n=existing;
   if(mode==="read"||mode==="both")n.status="want-to-read";
   if(mode==="own"||mode==="both")n.wantOwn=true;
   n.updatedAt=now();
  }else{
-  n={id:uid(),workId:uid(),title:f.title||"",author:f.author||"",cover:f.cover||"",coverSource:f.cover?(f.source||"Public metadata"):"",genres:uniqText(f.genres||[]),tags:[],series:f.series||"",seriesNo:f.seriesNo||"",status:(mode==="read"||mode==="both")?"want-to-read":"",owned:false,wantOwn:(mode==="own"||mode==="both"),rating:0,favorite:false,spice:0,spiceConfidence:"unknown",intelligence:true,intelligenceSource:f.source||"Public book metadata",readDateUnknown:false,finishedDate:"",copyConnections:[],readingJournal:[],readingProgress:{},notes:"",edition:null,workMetadata:{publisher:(f.edition&&f.edition.publisher)||"",publicationDate:(f.edition&&f.edition.publicationDate)||"",pages:(f.edition&&f.edition.pages)||""},updatedAt:now(),deleted:false};
+  n={id:uid(),workId:uid(),title:f.title||"",author:f.author||"",cover:f.cover||"",coverSource:f.cover?(f.source||"Public metadata"):"",genres:uniqText((intel&&intel.genres)||f.genres||[]),tags:uniqText((intel&&intel.tags)||[]),series:(intel&&intel.series)||f.series||"",seriesNo:(intel&&intel.seriesNo)||f.seriesNo||"",status:(mode==="read"||mode==="both")?"want-to-read":"",owned:false,wantOwn:(mode==="own"||mode==="both"),rating:0,favorite:false,spice:(intel&&intel.spice!=null)?+intel.spice:null,spiceConfidence:(intel&&intel.spiceConfidence)||"unknown",intelligence:true,intelligenceSource:(intel&&intel.source)||f.source||"Public book metadata",readDateUnknown:false,finishedDate:"",copyConnections:[],readingJournal:[],readingProgress:{},notes:"",edition:null,workMetadata:{publisher:(f.edition&&f.edition.publisher)||"",publicationDate:(f.edition&&f.edition.publicationDate)||"",pages:(f.edition&&f.edition.pages)||""},updatedAt:now(),deleted:false};
   state.books.push(n)
  }
  learnWorkIntelligence(n);save();autoSyncMaybe();return n

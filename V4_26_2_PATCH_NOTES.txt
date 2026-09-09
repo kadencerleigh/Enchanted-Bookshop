@@ -1,0 +1,27 @@
+ENCHANTED BOOKSHOP V4.26.2 — SEARCH + SPICE PATCH
+
+Built from V4.26.1 after real Pixel testing.
+
+FIXED
+• Search retries careful title-focused fallbacks when an exact title+author query returns nothing.
+• Handles ampersand / “and” / punctuation differences.
+• Ranks likely title+author matches higher.
+• Butcher & Blackbird is the regression test.
+
+• Unknown spice no longer displays as Clean.
+• Unknown/unverified spice displays ❔ Unknown.
+• Existing Book Intelligence is reused conservatively when it already has supported spice information.
+• No Fourth Wing hardcode.
+
+PRESERVED
+• V4.26.1 ownership distinction
+• Work ≠ Edition ≠ Copy
+• Challenge Cloud Sync
+• Book Detail Glow-Up
+• Atmospheres
+• Desktop sidebar scrolling
+• Mobile More-menu guard
+• V4.22.1 backup compatibility
+
+NO SUPABASE SQL REQUIRED.
+DO NOT CLEAR SITE DATA.
