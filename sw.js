@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-13-series-brain-2";
+const CACHE="enchanted-bookshop-v4-14-want-to-own-2";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.13.0",
- "./app.js?v=4.13.0",
- "./manifest.json?v=4.13.0",
- "./icon-192.png?v=4.13.0",
+ "./styles.css?v=4.14.0",
+ "./app.js?v=4.14.0",
+ "./manifest.json?v=4.14.0",
+ "./icon-192.png?v=4.14.0",
  "./icon-512.png"
 ];
 
