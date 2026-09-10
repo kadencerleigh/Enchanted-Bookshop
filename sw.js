@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-30-0-final-cleanup";
+const CACHE="enchanted-bookshop-v4-30-1-series-catalog-delete";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.30.0",
- "./app.js?v=4.30.0",
- "./manifest.json?v=4.30.0",
- "./icon-192.png?v=4.30.0",
+ "./styles.css?v=4.30.1",
+ "./app.js?v=4.30.1",
+ "./manifest.json?v=4.30.1",
+ "./icon-192.png?v=4.30.1",
  "./icon-512.png"
 ];
 
