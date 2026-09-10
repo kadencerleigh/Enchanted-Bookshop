@@ -23,8 +23,9 @@ function setCachedJSON(url,data){try{var c=getMetaCache();c[url]={savedAt:Date.n
 async function cachedFetchJSON(url){var hit=getCachedJSON(url);if(hit!==null)return{ok:true,status:200,data:hit,fromCache:true};var c=new AbortController(),t=setTimeout(function(){c.abort()},8000);try{var r=await fetch(url,{signal:c.signal});clearTimeout(t);if(!r.ok)return{ok:false,status:r.status,data:null,fromCache:false};var j=await r.json();setCachedJSON(url,j);return{ok:true,status:r.status,data:j,fromCache:false}}catch(e){clearTimeout(t);return{ok:false,status:0,data:null,fromCache:false}}}
 var seriesCatalog=[];try{seriesCatalog=JSON.parse(localStorage.getItem(SERIES_KEY))||[]}catch(e){}
 function saveSeries(){localStorage.setItem(SERIES_KEY,JSON.stringify(seriesCatalog))}
-function seriesId(name){return "s_"+norm(name).replace(/\s+/g,"_")}
-function getSeries(name,id){if(id){var byId=seriesCatalog.find(function(s){return !s.deleted&&s.id===id});if(byId)return byId}return seriesCatalog.find(function(s){return !s.deleted&&s.name===name})||seriesCatalog.find(function(s){return !s.deleted&&norm(s.name)===norm(name)})}
+function seriesIdentity(name){return norm(String(name||"").replace(/[’']/g,"'").replace(/'s\b/gi,"s"))}
+function seriesId(name){return "s_"+seriesIdentity(name).replace(/\s+/g,"_")}
+function getSeries(name,id){if(id){var byId=seriesCatalog.find(function(s){return !s.deleted&&s.id===id});if(byId)return byId}return seriesCatalog.find(function(s){return !s.deleted&&s.name===name})||seriesCatalog.find(function(s){return !s.deleted&&seriesIdentity(s.name)===seriesIdentity(name)})}
 function isOwnedSeriesEntry(entry,books){return catalogedSeriesEntry(entry,books)||entry.ownedUncataloged===true}
 function uid(){return "b_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
 function now(){return new Date().toISOString()}
@@ -44,6 +45,18 @@ var state=null;
 try{state=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!state||!Array.isArray(state.books))state={books:sample,view:"home",filter:"all"};
 state.books=state.books.map(function(b){b.updatedAt=b.updatedAt||now();b.deleted=!!b.deleted;b.workId=b.workId||uid();return b});
+function repairAGGGTM4302(){
+ var repairKey="enchanted-bookshop-repair-agggtm-v4-30-2";try{if(localStorage.getItem(repairKey)==="done")return}catch(e){}
+ var target="A good girls guide to murder",targetKey=seriesIdentity(target),titles={"a good girl s guide to murder":"1","good girl bad blood":"2","as good as dead":"3"},changed=false;
+ state.books.forEach(function(b){if(!b||b.deleted)return;var titleKey=norm(b.title),isKnown=Object.prototype.hasOwnProperty.call(titles,titleKey),isSeries=seriesIdentity(b.series)===targetKey;if(isKnown||isSeries){if(b.series!==target){b.series=target;changed=true}if(isKnown&&String(b.seriesNo||"")!==titles[titleKey]){b.seriesNo=titles[titleKey];changed=true}if(changed)b.updatedAt=now()}});
+ var related=seriesCatalog.filter(function(c){return c&&seriesIdentity(c.name)===targetKey}),best=related.filter(function(c){return Array.isArray(c.books)&&c.books.length>=4}).sort(function(a,b){return (b.books||[]).length-(a.books||[]).length})[0];
+ var lineup=best&&best.books&&best.books.length>=4?best.books.map(function(x){return Object.assign({},x)}):[{number:"0.5",title:"Kill Joy",type:"Novella / Extra",ownedUncataloged:false},{number:"1",title:"A Good Girl's Guide to Murder",type:"Main novel",ownedUncataloged:false},{number:"2",title:"Good Girl, Bad Blood",type:"Main novel",ownedUncataloged:false},{number:"3",title:"As Good As Dead",type:"Main novel",ownedUncataloged:false}];
+ related.forEach(function(c){if(!c.deleted){c.deleted=true;c.updatedAt=now();changed=true}});
+ var canonicalId="s_agggtm_canonical_v4302",canonical=seriesCatalog.find(function(c){return c&&c.id===canonicalId});var obj={id:canonicalId,name:target,authorHint:"Holly Jackson",books:lineup,confirmed:true,source:"Series Discovery 3.0 • repaired V4.30.2",discoveryConfidence:(best&&best.discoveryConfidence)||"User confirmed",updatedAt:now(),deleted:false};
+ if(canonical)Object.assign(canonical,obj);else seriesCatalog.push(obj);changed=true;
+ if(changed){localStorage.setItem(KEY,JSON.stringify(state));saveSeries()}try{localStorage.setItem(repairKey,"done")}catch(e){}
+}
+repairAGGGTM4302();
 function save(){localStorage.setItem(KEY,JSON.stringify(state));}
 function visible(){return state.books.filter(function(b){return !b.deleted})}
 function owned(){return visible().filter(function(b){return b.owned})}
@@ -194,7 +207,7 @@ var HOME_WIDGET_DEFAULT=["reading","challenge","journal","grail","seriesgap","st
 function homeDashSettings(){var x=null;try{x=JSON.parse(localStorage.getItem(HOME_DASH_KEY))}catch(e){};if(!x||!Array.isArray(x.order))x={order:HOME_WIDGET_DEFAULT.slice(),hidden:[]};HOME_WIDGET_DEFAULT.forEach(function(k){if(x.order.indexOf(k)<0)x.order.push(k)});x.hidden=Array.isArray(x.hidden)?x.hidden:[];return x}
 function saveHomeDash(x){localStorage.setItem(HOME_DASH_KEY,JSON.stringify(x))}
 function latestJournalMemory(){var all=[];owned().forEach(function(b){(b.readingJournal||[]).forEach(function(e){all.push({book:b,entry:e})})});all.sort(function(a,b){return String(b.entry.updatedAt||b.entry.createdAt||b.entry.date||"").localeCompare(String(a.entry.updatedAt||a.entry.createdAt||a.entry.date||""))});return all[0]||null}
-function firstSeriesGap(){var found=null;seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed}).some(function(cat){var own=owned().filter(function(b){return norm(b.series)===norm(cat.name)});return (cat.books||[]).some(function(x){if(seriesState(x,own)==="missing"){found={series:cat.name,title:x.title,number:x.number||""};return true}return false})});return found}
+function firstSeriesGap(){var found=null;seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed}).some(function(cat){var own=owned().filter(function(b){return seriesIdentity(b.series)===seriesIdentity(cat.name)});return (cat.books||[]).some(function(x){if(seriesState(x,own)==="missing"){found={series:cat.name,title:x.title,number:x.number||""};return true}return false})});return found}
 function homeWidget(k){
  var o=owned(),read=o.filter(function(b){return b.status==="read"}),fav=o.filter(function(b){return b.favorite}),cur=currentReadingBooks(),ch=challengeData(),pct=ch.goal?Math.min(100,Math.round(ch.done/ch.goal*100)):0;
  if(k==="reading")return '<section class="dashboard-card home-widget"><div class="eyebrow">📖 CURRENTLY READING</div><h2>On the nightstand</h2>'+(cur.length?'<div class="current-grid">'+cur.map(card).join("")+'</div>':'<div class="empty mini">Nothing marked Currently Reading yet.</div>')+'</section>';
@@ -281,14 +294,14 @@ function seriesState(entry,books){
 }
 function seriesSortNumber(x){var n=parseFloat(String(x&&x.number||""));return isNaN(n)?9999:n}
 function series(){
- var map={};owned().filter(function(b){return b.series}).forEach(function(b){if(!map[b.series])map[b.series]=[];map[b.series].push(b)});
- seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){if(!map[s.name])map[s.name]=[]});
- var names=Object.keys(map).sort(),totalSeries=names.length,completeSeries=0,totalMissing=0,totalNeedCatalog=0;
- names.forEach(function(name){var a=map[name],cat=getSeries(name);if(!cat)return;(cat.books||[]).forEach(function(x){var st=seriesState(x,a);if(st==="missing")totalMissing++;if(st==="owned")totalNeedCatalog++});if(cat.books&&cat.books.length&&cat.books.every(function(x){return ownedSeriesEntry(x,a)}))completeSeries++});
+ var map={},display={};owned().filter(function(b){return b.series}).forEach(function(b){var k=seriesIdentity(b.series);if(!map[k])map[k]=[];map[k].push(b);if(!display[k])display[k]=b.series});
+ seriesCatalog.filter(function(s){return !s.deleted}).forEach(function(s){var k=seriesIdentity(s.name);if(!map[k])map[k]=[];display[k]=s.name});
+ var keys=Object.keys(map).sort(function(a,b){return String(display[a]||a).localeCompare(String(display[b]||b))}),names=keys.map(function(k){return display[k]||k}),totalSeries=keys.length,completeSeries=0,totalMissing=0,totalNeedCatalog=0;
+ names.forEach(function(name){var a=map[seriesIdentity(name)]||[],cat=getSeries(name);if(!cat)return;(cat.books||[]).forEach(function(x){var st=seriesState(x,a);if(st==="missing")totalMissing++;if(st==="owned")totalNeedCatalog++});if(cat.books&&cat.books.length&&cat.books.every(function(x){return ownedSeriesEntry(x,a)}))completeSeries++});
  var hero='<div class="series-brain-hero series-discovery-hero"><div><div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">Your Series</h1><p class="sub">Discover a series even before you own it, review the proposed reading order, then let the Bookshop track the lineup you confirm.</p><div class="actions"><button class="primary" id="discoverSeriesBtn">🔎 Discover a series</button></div></div><div class="series-brain-stats"><div><b>'+totalSeries+'</b><span>Series</span></div><div><b>'+completeSeries+'</b><span>Complete</span></div><div><b>'+totalMissing+'</b><span>Missing</span></div><div><b>'+totalNeedCatalog+'</b><span>Need cataloging</span></div></div></div>';
  if(!names.length)return hero+'<div class="empty series-discovery-empty"><b>No series saved yet.</b><div class="muted">Search by series name and optional author. Nothing becomes owned, Want to Read, or Want to Own unless you explicitly choose that elsewhere.</div></div>';
  return hero+'<div class="series-brain-grid">'+names.map(function(name){
-  var a=map[name].slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=seriesCatalog.find(function(s){return !s.deleted&&s.name===name})||getSeries(name);
+  var a=(map[seriesIdentity(name)]||[]).slice().sort(function(x,y){return(+x.seriesNo||0)-(+y.seriesNo||0)}),cat=seriesCatalog.find(function(s){return !s.deleted&&seriesIdentity(s.name)===seriesIdentity(name)})||getSeries(name);
   if(!cat){var covers=a.filter(function(x){return x.cover}).slice(0,3);return '<section class="series-v2-card series-v2-unmapped"><div class="series-v2-top"><div><div class="eyebrow">✨ SERIES DISCOVERED</div><h2>'+esc(name)+'</h2><p>'+a.length+' cataloged book'+(a.length===1?'':'s')+' • lineup not confirmed yet</p></div><div class="series-mini-covers">'+covers.map(function(x){return '<img src="'+esc(x.cover)+'" alt="">'}).join('')+'</div></div><div class="series-v2-callout">🧠 Discover the full lineup to unlock missing-book tracking and collection progress.</div><div class="actions"><button class="primary" data-series-find="'+esc(name)+'">🔎 Discover lineup</button><button class="pill" data-series-edit="'+esc(name)+'">✏️ Enter manually</button></div></section>'}
   var books=(cat.books||[]).slice().sort(function(x,y){return seriesSortNumber(x)-seriesSortNumber(y)}),total=books.length,cataloged=books.filter(function(x){return catalogedSeriesEntry(x,a)}).length,ownedCount=books.filter(function(x){return ownedSeriesEntry(x,a)}).length,missing=total-ownedCount;
   var mainBooks=books.filter(function(x){return !isExtraType(x.type||"Main novel")}),extraBooks=books.filter(function(x){return isExtraType(x.type||"")}),mainOwned=mainBooks.filter(function(x){return ownedSeriesEntry(x,a)}).length,extraOwned=extraBooks.filter(function(x){return ownedSeriesEntry(x,a)}).length;
@@ -572,7 +585,7 @@ async function findSeriesLineup(name,authorHint){if(typeof window!=="undefined")
  name=String(name||"").trim();authorHint=String(authorHint||"").trim();
  if(!name)return;
  el("#modalBody").innerHTML='<div class="eyebrow">🔎 V4.28.0 • SERIES DISCOVERY 3.0</div><h1 class="title">Finding '+esc(name)+'</h1><div class="empty">🔮 Searching by series name'+(authorHint?' and '+esc(authorHint):', known author')+', then comparing public series metadata…</div>';el("#modal").classList.remove("hidden");
- var local=owned().filter(function(b){return norm(b.series)===norm(name)}),seedAuthors=[];
+ var local=owned().filter(function(b){return seriesIdentity(b.series)===seriesIdentity(name)}),seedAuthors=[];
  if(authorHint)seedAuthors.push(authorHint);
  local.forEach(function(b){if(b.author&&!seedAuthors.some(function(a){return norm(a)===norm(b.author)}))seedAuthors.push(b.author)});
  var existing=getSeries(name);if(existing&&existing.authorHint&&!seedAuthors.some(function(a){return norm(a)===norm(existing.authorHint)}))seedAuthors.push(existing.authorHint);
@@ -601,7 +614,7 @@ async function findSeriesLineup(name,authorHint){if(typeof window!=="undefined")
  }
 }
 function openSeriesEditor(name,seriesRecordId){
- var existing=getSeries(name,seriesRecordId),books=existing?existing.books:owned().filter(function(b){return norm(b.series)===norm(name)}).map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",ownedUncataloged:false}}).sort(function(a,b){return(+a.number||0)-(+b.number||0)});
+ var existing=getSeries(name,seriesRecordId),books=existing?existing.books:owned().filter(function(b){return seriesIdentity(b.series)===seriesIdentity(name)}).map(function(b){return{number:b.seriesNo||"",title:b.title,type:"Main novel",ownedUncataloged:false}}).sort(function(a,b){return(+a.number||0)-(+b.number||0)});
  el("#modalBody").innerHTML='<div class="eyebrow">Series Brain™</div><h1 class="title">'+esc(name)+'</h1><p class="sub">One book per line: <b>number | title | type</b>. Ownership is managed from the Series page after saving.</p><div class="field full"><label>Series lineup</label><textarea id="seriesLines" style="min-height:300px">'+esc(books.map(function(x){return[x.number,x.title,x.type||"Main novel"].join(" | ")}).join("\n"))+'</textarea></div><div class="actions"><button class="primary" id="saveSeriesLineup">Save lineup</button>'+(existing?'<button class="danger" id="deleteSeriesCatalog">🗑️ Delete Series Catalog</button>':'')+'</div>'+(existing?'<div class="tiny muted">Deleting this Series Catalog does not delete any books, ownership, reading history, or other series.</div>':'');
  el("#modal").classList.remove("hidden");
  el("#saveSeriesLineup").onclick=function(){
@@ -612,7 +625,7 @@ function openSeriesEditor(name,seriesRecordId){
  };
  if(existing&&el("#deleteSeriesCatalog"))el("#deleteSeriesCatalog").onclick=function(){
   if(!confirm('Delete only this Series Catalog for "'+name+'"?\n\nYour books, ownership, reading history, and other series will stay untouched.'))return;
-  existing.deleted=true;existing.updatedAt=now();saveSeries();closeModal();render();autoSyncSeriesMaybe();
+  var targetId=existing.id,ix=seriesCatalog.findIndex(function(s){return s&&s.id===targetId&&s===existing});if(ix<0){alert("This exact Series Catalog record could not be identified, so nothing was deleted.");return}seriesCatalog[ix].deleted=true;seriesCatalog[ix].updatedAt=now();saveSeries();closeModal();render();autoSyncSeriesMaybe();
  };
 }
 function toggleSeriesOwned(name,title){
@@ -653,7 +666,7 @@ function wishKind(b){return String(b.wishKind||((b.edition&&((b.edition.isbn||""
 function wishFeatures(b){return uniqText(b.wishFeatures||[])}
 function wishlist2(){
  var wants=visible().filter(function(b){return b.wantOwn}), work=wants.filter(function(b){return wishKind(b)==="work"}), ed=wants.filter(function(b){return wishKind(b)==="edition"}), grails=wants.filter(function(b){return wishPriority(b)==="GRAIL"}), scannerReady=ed.filter(function(b){return !!cleanISBN(b.edition&&b.edition.isbn||"")});
- var gaps=[];seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed}).forEach(function(cat){var ownedArr=owned().filter(function(b){return norm(b.series)===norm(cat.name)});(cat.books||[]).forEach(function(x){if(seriesState(x,ownedArr)==="missing")gaps.push({series:cat.name,title:x.title,number:x.number||"",type:x.type||"Main novel"})})});
+ var gaps=[];seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed}).forEach(function(cat){var ownedArr=owned().filter(function(b){return seriesIdentity(b.series)===seriesIdentity(cat.name)});(cat.books||[]).forEach(function(x){if(seriesState(x,ownedArr)==="missing")gaps.push({series:cat.name,title:x.title,number:x.number||"",type:x.type||"Main novel"})})});
  function wc(b){var feats=wishFeatures(b),kind=wishKind(b),ready=wishHuntReadiness(b),ownSame=owned().some(function(x){return sameWork(x,b)});return '<article class="wish-card '+(wishPriority(b)==="GRAIL"?'grail':'')+'" data-wish-open="'+esc(b.id)+'"><div class="wish-cover">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="">':'📖')+'</div><div class="wish-body"><div class="eyebrow">'+(kind==='edition'?'💎 SPECIFIC EDITION':'📖 WORK WISH')+'</div><h3>'+esc(b.title)+'</h3><p>'+esc(b.author||'')+'</p>'+(ownSame?'<div class="wish-owned">📚 You already own this story — hunting another edition.</div>':'')+(kind==='edition'?'<div class="wish-readiness '+(cleanISBN(b.edition&&b.edition.isbn||"")?'ready':'needs')+'">'+(cleanISBN(b.edition&&b.edition.isbn||"")?'🎯 Scanner-ready exact ISBN hunt':'🕯️ Edition hunt needs ISBN for exact scanner match')+'</div>':'')+'<div class="wish-tags"><span>🔥 '+esc(wishPriority(b))+'</span>'+(b.wishTargetPrice?'<span>💰 $'+esc(b.wishTargetPrice)+'</span>':'')+(b.wishRetailer?'<span>🏪 '+esc(b.wishRetailer)+'</span>':'')+'</div>'+(feats.length?'<small>✨ '+esc(feats.join(' • '))+'</small>':'')+(ready.length?'<div class="tiny wish-ready-signals">'+ready.map(esc).join(' • ')+'</div>':'')+'<div class="wish-card-actions"><button class="primary" data-wish-view="'+esc(b.id)+'">📕 View Book</button><button class="pill" data-wish-edit="'+esc(b.id)+'">✏️ Edit</button></div></div></article>'}
  var tabs='<div class="wish-tabs"><button class="pill active" data-wish-filter="all">All '+wants.length+'</button><button class="pill" data-wish-filter="work">Works '+work.length+'</button><button class="pill" data-wish-filter="edition">Specific Editions '+ed.length+'</button><button class="pill" data-wish-filter="gaps">Series Gaps '+gaps.length+'</button><button class="pill" data-wish-filter="grail">💎 Grails '+grails.length+'</button></div>';
  var cards=wants.map(wc).join('')||'<div class="empty">Your treasure map is empty. Add a story or a specific dream edition. ✨</div>';
@@ -784,7 +797,7 @@ function achievementMetrics(){
   (b.readingJournal||[]).forEach(function(e){sessions.push({book:b,entry:e});minutes+=(+e.minutes||0);if(e.mood)moods[e.mood]=1;var pg=+e.page||0;if(pg){var k=b.id||b.title,prev=byBook[k]||0;if(pg>=prev)pages+=pg-prev;byBook[k]=Math.max(prev,pg)}})
  });
  var confirmed=seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed&&Array.isArray(x.books)&&x.books.length}),complete=0;
- confirmed.forEach(function(cat){var own=o.filter(function(b){return norm(b.series)===norm(cat.name)});if(cat.books.every(function(x){return ownedSeriesEntry(x,own)}))complete++});
+ confirmed.forEach(function(cat){var own=o.filter(function(b){return seriesIdentity(b.series)===seriesIdentity(cat.name)});if(cat.books.every(function(x){return ownedSeriesEntry(x,own)}))complete++});
  var cleanRows=cleanupIssueData(),cleanCount=Math.max(0,o.length-cleanRows.length),rated=o.filter(function(b){return +b.rating>0}).length;
  var workCopies={};o.forEach(function(b){var k=norm(b.title)+'|'+norm(b.author||'');if(k)(workCopies[k]||(workCopies[k]=[])).push(b)});var multiEdition=Object.keys(workCopies).filter(function(k){var a=workCopies[k],isbns={};a.forEach(function(b){var x=cleanISBN(b.edition&&b.edition.isbn||'');if(x)isbns[x]=1});return a.length>1&&Object.keys(isbns).length>1}).length;
  return {owned:o.length,read:o.filter(function(b){return b.status==='read'}).length,tbr:o.filter(function(b){return b.status==='want-to-read'}).length,favorites:o.filter(function(b){return b.favorite}).length,rated:rated,fiveStar:o.filter(function(b){return +b.rating===5}).length,sessions:sessions.length,pages:pages,minutes:minutes,memories:sessions.filter(function(x){var e=x.entry;return String(e.reaction||'').trim()||String(e.quote||'').trim()||String(e.notes||'').trim()}).length,quotes:sessions.filter(function(x){return String(x.entry.quote||'').trim()}).length,moods:Object.keys(moods).length,genres:Object.keys(genres).length,specialBooks:specialBooks,signedBooks:signedBooks,seriesBooks:o.filter(function(b){return String(b.series||'').trim()}).length,confirmedSeries:confirmed.length,completeSeries:complete,cleanCount:cleanCount,cleanPct:o.length?Math.round(cleanCount/o.length*100):100,multiEdition:multiEdition}

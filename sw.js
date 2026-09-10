@@ -1,4 +1,4 @@
-const CACHE="enchanted-bookshop-v4-30-1-series-catalog-delete";
+const CACHE="enchanted-bookshop-v4-30-2-series-identity-repair";
 const CORE=[
  "./",
  "./index.html",
