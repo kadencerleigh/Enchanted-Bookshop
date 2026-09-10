@@ -648,17 +648,17 @@ function wishPriority(b){return String(b.wishPriority||"Normal")}
 function wishKind(b){return String(b.wishKind||((b.edition&&((b.edition.isbn||"").trim()||(b.edition.name||"").trim()))?"edition":"work"))}
 function wishFeatures(b){return uniqText(b.wishFeatures||[])}
 function wishlist2(){
- var wants=visible().filter(function(b){return b.wantOwn}), work=wants.filter(function(b){return wishKind(b)==="work"}), ed=wants.filter(function(b){return wishKind(b)==="edition"}), grails=wants.filter(function(b){return wishPriority(b)==="GRAIL"});
+ var wants=visible().filter(function(b){return b.wantOwn}), work=wants.filter(function(b){return wishKind(b)==="work"}), ed=wants.filter(function(b){return wishKind(b)==="edition"}), grails=wants.filter(function(b){return wishPriority(b)==="GRAIL"}), scannerReady=ed.filter(function(b){return !!cleanISBN(b.edition&&b.edition.isbn||"")});
  var gaps=[];seriesCatalog.filter(function(x){return !x.deleted&&x.confirmed}).forEach(function(cat){var ownedArr=owned().filter(function(b){return norm(b.series)===norm(cat.name)});(cat.books||[]).forEach(function(x){if(seriesState(x,ownedArr)==="missing")gaps.push({series:cat.name,title:x.title,number:x.number||"",type:x.type||"Main novel"})})});
- function wc(b){var feats=wishFeatures(b),kind=wishKind(b),ownSame=owned().some(function(x){return norm(x.title)===norm(b.title)&&norm(x.author||"")===norm(b.author||"")});return '<article class="wish-card '+(wishPriority(b)==="GRAIL"?'grail':'')+'" data-wish-open="'+esc(b.id)+'"><div class="wish-cover">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="">':'📖')+'</div><div class="wish-body"><div class="eyebrow">'+(kind==='edition'?'💎 SPECIFIC EDITION':'📖 WORK WISH')+'</div><h3>'+esc(b.title)+'</h3><p>'+esc(b.author||'')+'</p>'+(ownSame?'<div class="wish-owned">📚 You already own this story — hunting another edition.</div>':'')+'<div class="wish-tags"><span>🔥 '+esc(wishPriority(b))+'</span>'+(b.wishTargetPrice?'<span>💰 $'+esc(b.wishTargetPrice)+'</span>':'')+(b.wishRetailer?'<span>🏪 '+esc(b.wishRetailer)+'</span>':'')+'</div>'+(feats.length?'<small>✨ '+esc(feats.join(' • '))+'</small>':'')+'<div class="wish-card-actions"><button class="primary" data-wish-view="'+esc(b.id)+'">📕 View Book</button><button class="pill" data-wish-edit="'+esc(b.id)+'">✏️ Edit</button></div></div></article>'}
+ function wc(b){var feats=wishFeatures(b),kind=wishKind(b),ready=wishHuntReadiness(b),ownSame=owned().some(function(x){return sameWork(x,b)});return '<article class="wish-card '+(wishPriority(b)==="GRAIL"?'grail':'')+'" data-wish-open="'+esc(b.id)+'"><div class="wish-cover">'+(b.cover?'<img src="'+esc(b.cover)+'" alt="">':'📖')+'</div><div class="wish-body"><div class="eyebrow">'+(kind==='edition'?'💎 SPECIFIC EDITION':'📖 WORK WISH')+'</div><h3>'+esc(b.title)+'</h3><p>'+esc(b.author||'')+'</p>'+(ownSame?'<div class="wish-owned">📚 You already own this story — hunting another edition.</div>':'')+(kind==='edition'?'<div class="wish-readiness '+(cleanISBN(b.edition&&b.edition.isbn||"")?'ready':'needs')+'">'+(cleanISBN(b.edition&&b.edition.isbn||"")?'🎯 Scanner-ready exact ISBN hunt':'🕯️ Edition hunt needs ISBN for exact scanner match')+'</div>':'')+'<div class="wish-tags"><span>🔥 '+esc(wishPriority(b))+'</span>'+(b.wishTargetPrice?'<span>💰 $'+esc(b.wishTargetPrice)+'</span>':'')+(b.wishRetailer?'<span>🏪 '+esc(b.wishRetailer)+'</span>':'')+'</div>'+(feats.length?'<small>✨ '+esc(feats.join(' • '))+'</small>':'')+(ready.length?'<div class="tiny wish-ready-signals">'+ready.map(esc).join(' • ')+'</div>':'')+'<div class="wish-card-actions"><button class="primary" data-wish-view="'+esc(b.id)+'">📕 View Book</button><button class="pill" data-wish-edit="'+esc(b.id)+'">✏️ Edit</button></div></div></article>'}
  var tabs='<div class="wish-tabs"><button class="pill active" data-wish-filter="all">All '+wants.length+'</button><button class="pill" data-wish-filter="work">Works '+work.length+'</button><button class="pill" data-wish-filter="edition">Specific Editions '+ed.length+'</button><button class="pill" data-wish-filter="gaps">Series Gaps '+gaps.length+'</button><button class="pill" data-wish-filter="grail">💎 Grails '+grails.length+'</button></div>';
  var cards=wants.map(wc).join('')||'<div class="empty">Your treasure map is empty. Add a story or a specific dream edition. ✨</div>';
  var gapCards=gaps.map(function(g){return '<article class="wish-gap"><div><div class="eyebrow">🔮 SERIES GAP</div><h3>'+esc(g.title)+'</h3><p>'+esc(g.series)+(g.number?' • #'+esc(g.number):'')+' • '+esc(g.type)+'</p></div><button class="primary" data-wish-gap="'+esc(g.series)+'" data-wish-title="'+esc(g.title)+'" data-wish-no="'+esc(g.number)+'">✨ Want this</button></article>'}).join('')||'<div class="empty">No confirmed missing series books right now. 🔮</div>';
- return '<div class="wish-hero"><div><div class="eyebrow">✨ V4.14 • WANT TO OWN 2.0</div><h1 class="title">Treasure Wishlist</h1><p class="sub">Want the story, hunt a specific edition, mark a grail, and keep series gaps separate from what you actually own.</p></div><button class="primary" id="newWish">＋ Add a wish</button></div><div class="wish-stats"><div><b>'+wants.length+'</b><span>Wishes</span></div><div><b>'+ed.length+'</b><span>Edition hunts</span></div><div><b>'+grails.length+'</b><span>Grails</span></div><div><b>'+gaps.length+'</b><span>Series gaps</span></div></div>'+tabs+'<div id="wishMain"><div class="wish-grid">'+cards+'</div></div><div id="wishGaps" class="hidden"><div class="wish-gap-grid">'+gapCards+'</div></div>'
+ return '<div class="wish-hero"><div><div class="eyebrow">🛍️ V4.29 • WISH HUNTING 3.0</div><h1 class="title">Treasure Wishlist</h1><p class="sub">Save the story or hunt the exact edition. Scanner matches now know the difference between <b>wanted</b> and <b>owned</b>.</p></div><button class="primary" id="newWish">＋ Add a wish</button></div><div class="wish-stats"><div><b>'+wants.length+'</b><span>Wishes</span></div><div><b>'+ed.length+'</b><span>Edition hunts</span></div><div><b>'+scannerReady.length+'</b><span>Scanner-ready</span></div><div><b>'+grails.length+'</b><span>Grails</span></div></div>'+tabs+'<div id="wishMain"><div class="wish-grid">'+cards+'</div></div><div id="wishGaps" class="hidden"><div class="wish-gap-grid">'+gapCards+'</div></div>'
 }
 function openWish(b){
  b=b||{id:"",workId:"",title:"",author:"",cover:"",genres:[],series:"",seriesNo:"",status:"no-reading-status",owned:false,wantOwn:true,rating:0,favorite:false,spice:0,edition:{isbn:"",name:"",format:"Paperback",publisher:"",publicationDate:"",pages:"",printing:"",special:[]},wishKind:"work",wishPriority:"Normal",wishTargetPrice:"",wishRetailer:"",wishFeatures:[],wishNotes:""};var e=b.edition||{};
- el("#modalBody").innerHTML='<div class="eyebrow">✨ WANT TO OWN 2.0</div><h1 class="title">'+(b.id?'Edit your wish':'Add to your treasure map')+'</h1><form id="wishForm"><div class="form">'+field('Title','title',b.title,true)+field('Author','author',b.author)+selectField('What are you hunting?','wishKind',['work','edition'],wishKind(b))+selectField('Priority','wishPriority',['Low','Normal','High','GRAIL'],wishPriority(b))+field('Series','series',b.series)+field('Series number','seriesNo',b.seriesNo)+field('Target price','wishTargetPrice',b.wishTargetPrice||'')+field('Preferred retailer / source','wishRetailer',b.wishRetailer||'')+field('ISBN — if specific edition','isbn',e.isbn||'')+field('Edition name','editionName',e.name||'')+selectField('Format','format',['Paperback','Hardcover','Box Set','Ebook','Audiobook','Other'],e.format||'Paperback')+field('Dream collector features','wishFeatures',wishFeatures(b).join(', '),'',true)+'<div class="field full"><label>Why I want it / notes</label><textarea name="wishNotes">'+esc(b.wishNotes||'')+'</textarea></div></div><div class="actions">'+(b.id?'<button type="button" class="danger" id="removeWish">Remove wish</button>':'')+'<button class="primary" type="submit">✨ Save wish</button></div></form>';
+ el("#modalBody").innerHTML='<div class="eyebrow">🛍️ WISH HUNTING 3.0</div><h1 class="title">'+(b.id?'Edit your wish':'Add to your treasure map')+'</h1><form id="wishForm"><div class="form">'+field('Title','title',b.title,true)+field('Author','author',b.author)+selectField('What are you hunting?','wishKind',['work','edition'],wishKind(b))+selectField('Priority','wishPriority',['Low','Normal','High','GRAIL'],wishPriority(b))+field('Series','series',b.series)+field('Series number','seriesNo',b.seriesNo)+field('Target price','wishTargetPrice',b.wishTargetPrice||'')+field('Preferred retailer / source','wishRetailer',b.wishRetailer||'')+field('ISBN — if specific edition','isbn',e.isbn||'')+field('Edition name','editionName',e.name||'')+selectField('Format','format',['Paperback','Hardcover','Box Set','Ebook','Audiobook','Other'],e.format||'Paperback')+field('Dream collector features','wishFeatures',wishFeatures(b).join(', '),'',true)+'<div class="field full"><label>Why I want it / notes</label><textarea name="wishNotes">'+esc(b.wishNotes||'')+'</textarea></div></div><div class="actions">'+(b.id?'<button type="button" class="danger" id="removeWish">Remove wish</button>':'')+'<button class="primary" type="submit">✨ Save wish</button></div></form>';
  el('#modal').classList.remove('hidden');el('#wishForm').onsubmit=function(ev){ev.preventDefault();var f=new FormData(ev.target),n=Object.assign({},b,{id:b.id||uid(),workId:b.workId||uid(),title:f.get('title'),author:f.get('author'),series:f.get('series'),seriesNo:f.get('seriesNo'),owned:false,wantOwn:true,wishKind:f.get('wishKind'),wishPriority:f.get('wishPriority'),wishTargetPrice:f.get('wishTargetPrice'),wishRetailer:f.get('wishRetailer'),wishFeatures:String(f.get('wishFeatures')||'').split(',').map(function(x){return x.trim()}).filter(Boolean),wishNotes:f.get('wishNotes'),edition:Object.assign({},e,{isbn:f.get('isbn'),name:f.get('editionName'),format:f.get('format')}),updatedAt:now(),deleted:false});var ix=state.books.findIndex(function(x){return x.id===n.id});if(ix>=0)state.books[ix]=n;else state.books.push(n);save();closeModal();render();autoSyncMaybe()};if(b.id)el('#removeWish').onclick=function(){if(confirm('Remove this from Want to Own?')){var x=state.books.find(function(x){return x.id===b.id});x.wantOwn=false;x.updatedAt=now();save();closeModal();render();autoSyncMaybe()}}
 }
 function journalBooks(){return owned().filter(function(b){return b.status==="currently-reading"||b.status==="rereading"||(b.readingJournal&&b.readingJournal.length)})}
@@ -1790,6 +1790,32 @@ function wireCollectorIntelligence(owned,hand){
  checks.forEach(function(c){c.onchange=refresh});refresh()
 }
 
+// V4.29 — Wish Hunting 3.0: wishlist-aware shopping truth.
+// Want to Own is independent from ownership and reading status. Scanner matches never promote a wish to owned.
+function wishHuntMatches(f){
+ var isbn=cleanISBN(f&&f.edition&&f.edition.isbn||""),wishes=visible().filter(function(b){return b.wantOwn===true&&b.owned!==true}),exact=null,work=[];
+ if(isbn)exact=wishes.find(function(b){return wishKind(b)==="edition"&&cleanISBN(b.edition&&b.edition.isbn||"")===isbn});
+ work=wishes.filter(function(b){return sameWork(b,f)});
+ return{exact:exact,work:work,any:exact||work[0]||null}
+}
+function wishHuntBanner(f){
+ var hit=wishHuntMatches(f);if(!hit.any)return "";
+ var w=hit.exact||hit.work[0],feats=wishFeatures(w),target=String(w.wishTargetPrice||"").trim(),retailer=String(w.wishRetailer||"").trim(),priority=wishPriority(w);
+ if(hit.exact){
+  return '<div class="wish-hunt-hit exact"><div class="eyebrow">🛍️ V4.29 • WISH HUNTING 3.0</div><h3>💎 YOU FOUND THE EDITION YOU WERE HUNTING</h3><div class="shop-verdict">This ISBN exactly matches a saved <b>Specific Edition</b> wish. It is still <b>not owned</b> unless you explicitly add it to your physical collection.</div><div class="wish-hunt-facts"><span>🔥 '+esc(priority)+'</span>'+(target?'<span>💰 Target $'+esc(target)+'</span>':'')+(retailer?'<span>🏪 '+esc(retailer)+'</span>':'')+'</div>'+(feats.length?'<div class="tiny">✨ Dream features: '+feats.map(esc).join(' • ')+'</div>':'')+'</div>'
+ }
+ return '<div class="wish-hunt-hit work"><div class="eyebrow">🛍️ V4.29 • WISH HUNTING 3.0</div><h3>✨ WISHLIST HIT — THIS STORY IS ON YOUR TREASURE MAP</h3><div class="shop-verdict">You want to own this work. This scanned ISBN is an <b>edition candidate</b>; it only counts as your exact hunted edition when the saved edition details confirm that.</div><div class="wish-hunt-facts"><span>🔥 '+esc(priority)+'</span>'+(target?'<span>💰 Target $'+esc(target)+'</span>':'')+(retailer?'<span>🏪 '+esc(retailer)+'</span>':'')+'</div>'+(feats.length?'<div class="tiny">✨ Features you are hunting: '+feats.map(esc).join(' • ')+'</div>':'')+'</div>'
+}
+function wishHuntReadiness(b){
+ var kind=wishKind(b),isbn=cleanISBN(b.edition&&b.edition.isbn||""),signals=[];
+ if(kind==="edition"){
+  if(isbn)signals.push("ISBN locked");
+  else signals.push("ISBN needed");
+  if((b.edition&&b.edition.name)||wishFeatures(b).length)signals.push("edition clues saved");
+ }
+ if(b.wishTargetPrice)signals.push("price target");
+ return signals
+}
 function shoppingEditionLines(x){
  var e=(x&&x.edition)||{},lines=[];
  if(e.name)lines.push("<b>Edition:</b> "+esc(e.name));
@@ -1831,7 +1857,7 @@ function wireKeepBrowsing(){
  var b=el("#shopKeepBrowsing");if(b)b.onclick=closeModal
 }
 function showMatch(f,source){
- var isbn=cleanISBN(f.edition&&f.edition.isbn),books=visible(),r=el("#guardianResult");
+ var isbn=cleanISBN(f.edition&&f.edition.isbn),books=owned(),r=el("#guardianResult");
  var exact=books.find(function(b){return cleanISBN(b.edition&&b.edition.isbn)===isbn&&isbn});
  var strictSame=books.find(function(b){
   return norm(b.title)===norm(f.title)&&norm(b.author||"")&&norm(f.author||"")&&norm(b.author)===norm(f.author)
@@ -1848,7 +1874,7 @@ function showMatch(f,source){
     '<div class="eyebrow">SHOPPING MODE 2.0 • 💎 COLLECTOR INTELLIGENCE 3.0</div>'+
     '<h3>🚨 EXACT EDITION ALREADY OWNED</h3>'+
     '<div class="shop-verdict">This ISBN is already in your physical catalog as <b>'+exactCopies+' cop'+(exactCopies===1?'y':'ies')+'</b>. Buying it again would be another <b>copy</b>, not a new edition.</div>'+
-    '<div class="shop-compare">'+shoppingCover(exact,"Your copy")+shoppingCover(f,"In your hand")+'</div>'+
+    wishHuntBanner(f)+'<div class="shop-compare">'+shoppingCover(exact,"Your copy")+shoppingCover(f,"In your hand")+'</div>'+
     shoppingSeriesSignal(f)+
     '<div class="shop-confidence"><b>Edition confidence:</b> HIGH • exact ISBN match</div>'+
     '<div class="actions"><button class="primary" id="previewBrain">🧠 Preview Work Intelligence</button>'+
@@ -1870,7 +1896,7 @@ function showMatch(f,source){
     '<div class="eyebrow">SHOPPING MODE 2.0 • 💎 COLLECTOR INTELLIGENCE 3.0</div>'+
     '<h3>💎 DIFFERENT EDITION</h3>'+
     '<div class="shop-verdict">You own this story, but <b>not this ISBN</b>. This may be worth buying if you want another edition.</div>'+
-    '<div class="shop-compare">'+shoppingCover(strictSame,"Edition you own")+shoppingCover(f,"Edition in your hand")+'</div>'+
+    wishHuntBanner(f)+'<div class="shop-compare">'+shoppingCover(strictSame,"Edition you own")+shoppingCover(f,"Edition in your hand")+'</div>'+
     '<div class="shop-confidence"><b>Edition confidence:</b> HIGH that it is a different edition • collector features are compared only when detected or confirmed</div>'+
     collectorIntelligenceHTML(strictSame,f)+
     shoppingSeriesSignal(f)+
@@ -1888,7 +1914,7 @@ function showMatch(f,source){
     '<div class="eyebrow">SHOPPING MODE 2.0 • POSSIBLE WORK MATCH</div>'+
     '<h3>🟣 CHECK BEFORE YOU BUY</h3>'+
     '<div class="shop-verdict">The title matches a book you own, but the author metadata is incomplete. I will not pretend this is an exact work match.</div>'+
-    '<div class="shop-compare">'+shoppingCover(possibleSame,"Possible match you own")+shoppingCover(f,"In your hand")+'</div>'+
+    wishHuntBanner(f)+'<div class="shop-compare">'+shoppingCover(possibleSame,"Possible match you own")+shoppingCover(f,"In your hand")+'</div>'+
     '<div class="shop-confidence"><b>Edition confidence:</b> LOW • confirm the book/edition yourself before adding.</div>'+
     '<div class="actions"><button class="primary" id="addFound">Add as a separate edition</button>'+shoppingKeepBrowsingButton()+'</div>'+
    '</div>';
@@ -1902,7 +1928,7 @@ function showMatch(f,source){
    '<div class="eyebrow">SHOPPING MODE 2.0 • NOT IN YOUR CATALOG</div>'+
    '<h3>🟢 NEW TO YOUR BOOKSHOP ✨</h3>'+
    '<div class="shop-verdict">No owned copy with this ISBN or a confirmed title-and-author work match was found.</div>'+
-   '<div class="shop-single">'+shoppingCover(f,"In your hand")+'</div>'+
+   wishHuntBanner(f)+'<div class="shop-single">'+shoppingCover(f,"In your hand")+'</div>'+
    shoppingSeriesSignal(f)+
    '<div class="shop-confidence"><b>Catalog confidence:</b> NEW based on your current local catalog. Public metadata can still be incomplete.</div>'+
    '<div class="actions"><button class="primary" id="addFound">📚 Add to Bookshop</button>'+shoppingKeepBrowsingButton()+'</div>'+

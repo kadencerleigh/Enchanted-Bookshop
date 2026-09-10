@@ -1,11 +1,11 @@
-const CACHE="enchanted-bookshop-v4-28-1-collector-work-grouping";
+const CACHE="enchanted-bookshop-v4-29-0-wish-hunting-3";
 const CORE=[
  "./",
  "./index.html",
- "./styles.css?v=4.28.1",
- "./app.js?v=4.28.1",
- "./manifest.json?v=4.28.1",
- "./icon-192.png?v=4.28.1",
+ "./styles.css?v=4.29.0",
+ "./app.js?v=4.29.0",
+ "./manifest.json?v=4.29.0",
+ "./icon-192.png?v=4.29.0",
  "./icon-512.png"
 ];
 

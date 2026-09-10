@@ -1,0 +1,21 @@
+ENCHANTED BOOKSHOP V4.29.0 — WISH HUNTING 3.0
+
+Final-four #4 targeted upgrade.
+
+Adds:
+- Wishlist-aware Scanner / Shopping Mode
+- Exact ISBN wish hit for Specific Edition hunts
+- Work-level wishlist hit for story wishes
+- Scanner-ready indicator for edition hunts with ISBN
+- Wish hunt target price / retailer / feature context in scanner result
+- Critical truth fix: wishlist records are never treated as owned by Shopping Mode
+- Want to Own remains independent from ownership and reading status
+
+No schema or SQL changes.
+Backup payload compatibility remains 4.22.1.
+
+TEST:
+1. Save a Specific Edition wish with an ISBN, owned=false.
+2. Scan/enter that ISBN. Expect: YOU FOUND THE EDITION YOU WERE HUNTING, not EXACT EDITION ALREADY OWNED.
+3. Save a work-level wish and scan a matching title/author edition. Expect: WISHLIST HIT / edition candidate.
+4. Confirm nothing becomes owned unless explicitly added.
