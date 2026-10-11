@@ -29,7 +29,6 @@ jobs:
             --max-time 30 \
             "${SUPABASE_URL%/}/rest/v1/" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             > /dev/null
 
-          echo "Supabase REST endpoint responded successfully"
+          echo "Supabase endpoint responded successfully"
